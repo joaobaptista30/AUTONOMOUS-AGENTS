@@ -3,9 +3,8 @@ from spade import agent
 from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
 from spade.message import Message
 
-
 class ShelterAgent(agent.Agent):
-    class SendMessageBehaviour(PeriodicBehaviour):
+    class SendMessageBehaviour(CyclicBehaviour):
         async def run(self):
             if self.agent.target_type is not None and self.agent.target_count > 0:
                 for i in range(self.agent.target_count):
@@ -15,18 +14,20 @@ class ShelterAgent(agent.Agent):
 
                     await self.send(msg)
                     print(f"{self.agent.name}: Message sent to {self.agent.target_type}{i}@localhost")
+                self.agent.target_type = None
+                self.agent.target_count = 0
 
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=5)
-            if msg:
+            if msg and msg.sender != self.agent.jid:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
 
     async def setup(self):
         print(f"Shelter Agent {self.name} started.")
         self.target_type = None
         self.target_count = 0
-        self.add_behaviour(self.SendMessageBehaviour(period=10))
+        self.add_behaviour(self.SendMessageBehaviour())
         self.add_behaviour(self.ReceiveMessageBehaviour())
 
     def update_target(self, target_type, target_count):
@@ -35,7 +36,7 @@ class ShelterAgent(agent.Agent):
         print(f"{self.name}: Target updated to {self.target_type} with count {self.target_count}")
 
 class SupplierAgent(agent.Agent):
-    class SendMessageBehaviour(PeriodicBehaviour):
+    class SendMessageBehaviour(CyclicBehaviour):
         async def run(self):
             if self.agent.target_type is not None and self.agent.target_count > 0:
                 for i in range(self.agent.target_count):
@@ -46,17 +47,20 @@ class SupplierAgent(agent.Agent):
                     await self.send(msg)
                     print(f"{self.agent.name}: Message sent to {self.agent.target_type}{i}@localhost")
 
+                    self.agent.target_type = None
+                    self.agent.target_count = 0
+
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=5)
-            if msg:
+            if msg and msg.sender != self.agent.jid:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
 
     async def setup(self):
         print(f"Supplier Agent {self.name} started.")
         self.target_type = None
         self.target_count = 0
-        self.add_behaviour(self.SendMessageBehaviour(period=10))
+        self.add_behaviour(self.SendMessageBehaviour())
         self.add_behaviour(self.ReceiveMessageBehaviour())
 
     def update_target(self, target_type, target_count):
@@ -66,7 +70,7 @@ class SupplierAgent(agent.Agent):
 
 
 class RescueAgent(agent.Agent):
-    class SendMessageBehaviour(PeriodicBehaviour):
+    class SendMessageBehaviour(CyclicBehaviour):
         async def run(self):
             if self.agent.target_type is not None and self.agent.target_count > 0:
                 for i in range(self.agent.target_count):
@@ -77,17 +81,20 @@ class RescueAgent(agent.Agent):
                     await self.send(msg)
                     print(f"{self.agent.name}: Message sent to {self.agent.target_type}{i}@localhost")
 
+                    self.agent.target_type = None
+                    self.agent.target_count = 0
+
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=5)
-            if msg:
+            if msg and msg.sender != self.agent.jid:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
 
     async def setup(self):
         print(f"Rescue Agent {self.name} started.")
         self.target_type = None
         self.target_count = 0
-        self.add_behaviour(self.SendMessageBehaviour(period=10))
+        self.add_behaviour(self.SendMessageBehaviour())
         self.add_behaviour(self.ReceiveMessageBehaviour())
 
 
@@ -131,7 +138,7 @@ async def main():
 
     list_shelter, list_supplier, list_rescue = await start_agents(num_shelter, num_supplier, num_rescue)
 
-    list_shelter[0].update_target("rescue",3)
+    list_shelter[0].update_target("shelter",1)
 
     try:
         await asyncio.sleep(30)
