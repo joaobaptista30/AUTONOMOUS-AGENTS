@@ -21,8 +21,6 @@ class ShelterAgent(agent.Agent):
             msg = await self.receive(timeout=5)
             if msg:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
-            else:
-                print(f"{self.agent.name}: No message received.")
 
     async def setup(self):
         print(f"Shelter Agent {self.name} started.")
@@ -53,8 +51,6 @@ class SupplierAgent(agent.Agent):
             msg = await self.receive(timeout=5)
             if msg:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
-            else:
-                print(f"{self.agent.name}: No message received.")
 
     async def setup(self):
         print(f"Supplier Agent {self.name} started.")
@@ -86,8 +82,7 @@ class RescueAgent(agent.Agent):
             msg = await self.receive(timeout=5)
             if msg:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
-            else:
-                print(f"{self.agent.name}: No message received.")
+
     async def setup(self):
         print(f"Rescue Agent {self.name} started.")
         self.target_type = None
@@ -135,6 +130,8 @@ async def main():
     num_rescue = 10
 
     list_shelter, list_supplier, list_rescue = await start_agents(num_shelter, num_supplier, num_rescue)
+
+    list_shelter[0].update_target("rescue",3)
 
     try:
         await asyncio.sleep(30)
