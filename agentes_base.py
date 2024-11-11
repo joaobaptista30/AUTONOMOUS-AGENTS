@@ -1,154 +1,131 @@
 import asyncio
 from spade import agent
-from spade.behaviour import PeriodicBehaviour, CyclicBehaviour
+from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 
-class ShelterAgent(agent.Agent):
-    class SendMessageBehaviour(CyclicBehaviour):
-        async def run(self):
-            if self.agent.target_type is not None and self.agent.target_count > 0:
-                for i in range(self.agent.target_count):
-                    msg = Message(to=f"{self.agent.target_type}{i}@localhost")
-                    msg.set_metadata("performative", "inform")
-                    msg.body = f"Requesting {self.agent.target_type} to point A"
+shelters_list = [
+    "shelter0@localhost", "shelter1@localhost", "shelter2@localhost",
+    "shelter3@localhost", "shelter4@localhost", "shelter5@localhost",
+    "shelter6@localhost", "shelter7@localhost", "shelter8@localhost",
+    "shelter9@localhost"
+]
+suppliers_list = [
+    "supplier0@localhost", "supplier1@localhost", "supplier2@localhost",
+    "supplier3@localhost", "supplier4@localhost", "supplier5@localhost",
+    "supplier6@localhost", "supplier7@localhost", "supplier8@localhost",
+    "supplier9@localhost"
+]
+rescuers_list = [
+    "rescuer0@localhost", "rescuer1@localhost", "rescuer2@localhost",
+    "rescuer3@localhost", "rescuer4@localhost", "rescuer5@localhost",
+    "rescuer6@localhost", "rescuer7@localhost", "rescuer8@localhost",
+    "rescuer9@localhost"
+]
 
-                    await self.send(msg)
-                    print(f"{self.agent.name}: Message sent to {self.agent.target_type}{i}@localhost")
-                self.agent.target_type = None
-                self.agent.target_count = 0
+
+class ShelterAgent(agent.Agent):
+    def __init__(self, jid, password, people_capacity, num_supplies, position):
+        super().__init__(jid, password)
+        self.People_Capacity = people_capacity   # Total space available in shelter
+        self.NUM_SUPPLIES = num_supplies         # Initial number of supplies available
+        self.position = position                 # Position on the map
+        self.current_supplies = num_supplies
 
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=5)
-            if msg and msg.sender != self.agent.jid:
-                print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
+            if msg:
+                performative = msg.get_metadata("performative")
+
+                # Handle requests from rescuers about shelter capacity
+                if performative == "query_space":
+                    response = Message(to=msg.sender.jid)  # Respond directly to sender's JID
+                    response.set_metadata("performative", "inform")
+                    response.body = f"Available space: {self.agent.People_Capacity}, Position: {self.agent.position}"
+                    await self.send(response)
+                    print(f"{self.agent.name}: Responded to {msg.sender.jid} with space info.")
+
+                else:
+                    print(f"{self.agent.name} received an unhandled message from {msg.sender.jid}: {msg.body}")
+
+    class CheckSuppliesBehaviour(CyclicBehaviour):
+        async def run(self):
+            # Check if current supplies are less than half the capacity
+            if self.agent.current_supplies < self.agent.NUM_SUPPLIES / 2:
+                # Request supplies from all supplier agents (we assume their JIDs are known)
+                print(f"{self.agent.name}: Supplies low ({self.agent.current_supplies}). Requesting resupply.")
+                for i in range(len(suppliers_list)):  # Iterate over the suppliers_list
+                    msg = Message(to=suppliers_list[i])  # Send request to each supplier
+                    msg.set_metadata("performative", "request_supplies")
+                    msg.body = "Need supplies"
+                    await self.send(msg)
+                    print(f"{self.agent.name}: Requested supplies from {suppliers_list[i]}")
+
+            # Delay before checking again (for example, every 10 seconds)
+            await asyncio.sleep(10)
 
     async def setup(self):
-        print(f"Shelter Agent {self.name} started.")
-        self.target_type = None
-        self.target_count = 0
-        self.add_behaviour(self.SendMessageBehaviour())
+        print(f"Shelter Agent {self.name} started with capacity {self.People_Capacity} and supplies {self.NUM_SUPPLIES}.")
         self.add_behaviour(self.ReceiveMessageBehaviour())
+        self.add_behaviour(self.CheckSuppliesBehaviour())
 
-    def update_target(self, target_type, target_count):
-        self.target_type = target_type
-        self.target_count = target_count
-        print(f"{self.name}: Target updated to {self.target_type} with count {self.target_count}")
 
 class SupplierAgent(agent.Agent):
-    class SendMessageBehaviour(CyclicBehaviour):
-        async def run(self):
-            if self.agent.target_type is not None and self.agent.target_count > 0:
-                for i in range(self.agent.target_count):
-                    msg = Message(to=f"{self.agent.target_type}{i}@localhost")
-                    msg.set_metadata("performative", "inform")
-                    msg.body = f"Requesting {self.agent.target_type} to assist"
-
-                    await self.send(msg)
-                    print(f"{self.agent.name}: Message sent to {self.agent.target_type}{i}@localhost")
-
-                    self.agent.target_type = None
-                    self.agent.target_count = 0
-
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=5)
             if msg and msg.sender != self.agent.jid:
-                print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
+                if msg.get_metadata("performative") == "request_supplies":
+                    print(f"{self.agent.name} received request from {msg.sender}: {msg.body}")
+                    # Respond to the shelter agent with the supplies information
+                    response = Message(to=msg.sender.jid)
+                    response.set_metadata("performative", "inform")
+                    response.body = "Supplying requested resources."
+                    await self.send(response)
+                    print(f"{self.agent.name}: Responded to {msg.sender.jid} with supply confirmation.")
+
 
     async def setup(self):
         print(f"Supplier Agent {self.name} started.")
-        self.target_type = None
-        self.target_count = 0
-        self.add_behaviour(self.SendMessageBehaviour())
         self.add_behaviour(self.ReceiveMessageBehaviour())
-
-    def update_target(self, target_type, target_count):
-        self.target_type = target_type
-        self.target_count = target_count
-        print(f"{self.name}: Target updated to {self.target_type} with count {self.target_count}")
 
 
 class RescueAgent(agent.Agent):
-    class SendMessageBehaviour(CyclicBehaviour):
-        async def run(self):
-            if self.agent.target_type is not None and self.agent.target_count > 0:
-                for i in range(self.agent.target_count):
-                    msg = Message(to=f"{self.agent.target_type}{i}@localhost")
-                    msg.set_metadata("performative", "inform")
-                    msg.body = f"Requesting {self.agent.target_type} to rescue operation"
-
-                    await self.send(msg)
-                    print(f"{self.agent.name}: Message sent to {self.agent.target_type}{i}@localhost")
-
-                    self.agent.target_type = None
-                    self.agent.target_count = 0
-
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=5)
             if msg and msg.sender != self.agent.jid:
                 print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
 
+
     async def setup(self):
         print(f"Rescue Agent {self.name} started.")
-        self.target_type = None
-        self.target_count = 0
-        self.add_behaviour(self.SendMessageBehaviour())
         self.add_behaviour(self.ReceiveMessageBehaviour())
 
 
-    def update_target(self, target_type, target_count):
-        self.target_type = target_type
-        self.target_count = target_count
-        print(f"{self.name}: Target updated to {self.target_type} with count {self.target_count}")
-
-async def start_agents(num_shelter, num_supplier, num_rescue):
-    list_shelter = []
-    list_supplier = []
-    list_rescue = []
-
-    for i in range(num_shelter):
-        jid = f"shelter{i}@localhost"
+async def start_agents():
+    # Create shelter agents
+    for jid in shelters_list:
         password = "password"
-        agent_instance = ShelterAgent(jid, password)
-        list_shelter.append(agent_instance)
+        agent_instance = ShelterAgent(jid, password, people_capacity=100, num_supplies=50, position="Unknown")
         await agent_instance.start()
 
-    for j in range(num_supplier):
-        jid = f"supplier{j}@localhost"
+    # Create supplier agents
+    for jid in suppliers_list:
         password = "password"
         agent_instance = SupplierAgent(jid, password)
-        list_supplier.append(agent_instance)
         await agent_instance.start()
 
-    for k in range(num_rescue):
-        jid = f"rescue{k}@localhost"
+    # Create rescue agents
+    for jid in rescuers_list:
         password = "password"
         agent_instance = RescueAgent(jid, password)
-        list_rescue.append(agent_instance)
         await agent_instance.start()
 
-    return list_shelter, list_supplier, list_rescue
 
 async def main():
-    num_shelter = 10
-    num_supplier = 10
-    num_rescue = 10
+    await start_agents()  # Start agents based on predefined lists
 
-    list_shelter, list_supplier, list_rescue = await start_agents(num_shelter, num_supplier, num_rescue)
-
-    list_shelter[0].update_target("shelter",2)
-
-    try:
-        await asyncio.sleep(30)
-    finally:
-        for agent in list_shelter:
-            await agent.stop()
-        for agent in list_supplier:
-            await agent.stop()
-        for agent in list_rescue:
-            await agent.stop()
 
 if __name__ == "__main__":
     asyncio.run(main())
