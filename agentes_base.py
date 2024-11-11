@@ -101,54 +101,44 @@ class RescueAgent(agent.Agent):
         self.target_count = target_count
         print(f"{self.name}: Target updated to {self.target_type} with count {self.target_count}")
 
-# Asynchronous function to create and start agents
 async def start_agents(num_shelter, num_supplier, num_rescue):
-    # Lists to store agent instances
     list_shelter = []
     list_supplier = []
     list_rescue = []
 
-    # Create and start Shelter agents
     for i in range(num_shelter):
         jid = f"shelter{i}@localhost"
         password = "password"
         agent_instance = ShelterAgent(jid, password)
         list_shelter.append(agent_instance)
-        await agent_instance.start()  # Await the start coroutine
+        await agent_instance.start()
 
-    # Create and start Supplier agents
     for j in range(num_supplier):
         jid = f"supplier{j}@localhost"
         password = "password"
         agent_instance = SupplierAgent(jid, password)
         list_supplier.append(agent_instance)
-        await agent_instance.start()  # Await the start coroutine
+        await agent_instance.start()
 
-    # Create and start Rescue agents
     for k in range(num_rescue):
         jid = f"rescue{k}@localhost"
         password = "password"
         agent_instance = RescueAgent(jid, password)
         list_rescue.append(agent_instance)
-        await agent_instance.start()  # Await the start coroutine
+        await agent_instance.start()
 
-    # Return the lists of agents for later use (e.g., stopping them)
     return list_shelter, list_supplier, list_rescue
 
 async def main():
-    # Define the number of agents you want to start for each type
     num_shelter = 10
     num_supplier = 10
     num_rescue = 10
 
-    # Start the agents
     list_shelter, list_supplier, list_rescue = await start_agents(num_shelter, num_supplier, num_rescue)
 
-    # Keep the system running for a while so agents can execute their behaviors
     try:
-        await asyncio.sleep(30)  # Run for 30 seconds
+        await asyncio.sleep(30)
     finally:
-        # Stop all agents before exiting
         for agent in list_shelter:
             await agent.stop()
         for agent in list_supplier:
@@ -156,6 +146,5 @@ async def main():
         for agent in list_rescue:
             await agent.stop()
 
-# Run the main function in the asyncio event loop
 if __name__ == "__main__":
     asyncio.run(main())
