@@ -104,28 +104,43 @@ class RescueAgent(agent.Agent):
 
 
 async def start_agents():
+    shelters = []
     # Create shelter agents
     for jid in shelters_list:
         password = "password"
         agent_instance = ShelterAgent(jid, password, people_capacity=100, num_supplies=50, position="Unknown")
+        shelters.append(agent_instance)
         await agent_instance.start()
 
+    suppliers = []
     # Create supplier agents
     for jid in suppliers_list:
         password = "password"
         agent_instance = SupplierAgent(jid, password)
+        suppliers.append(agent_instance)
         await agent_instance.start()
 
+    rescuers = []
     # Create rescue agents
     for jid in rescuers_list:
         password = "password"
         agent_instance = RescueAgent(jid, password)
+        rescuers.append(agent_instance)
         await agent_instance.start()
 
 
 async def main():
-    await start_agents()  # Start agents based on predefined lists
+    shelters, suppliers, rescuers = await start_agents()  # Start agents based on predefined lists
 
+    try:
+        await asyncio.sleep(30)
+    finally:
+        for agent in shelters:
+            await agent.stop()
+        for agent in suppliers:
+            await agent.stop()
+        for agent in rescuers:
+            await agent.stop()
 
 if __name__ == "__main__":
     asyncio.run(main())
