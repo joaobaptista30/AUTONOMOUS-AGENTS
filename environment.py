@@ -1,7 +1,8 @@
 class Connections:  # edge
-    def __init__(self, destiny, distance):
+    def __init__(self, destiny, distance, blocked=False):
         self.destiny = destiny
         self.distance = distance
+        self.blocked = blocked
 
     def get_destiny(self):
         return self.destiny
@@ -14,8 +15,9 @@ class Connections:  # edge
 
 
 class Block:  # nodes
-    def __init__(self, name, zone, adj_zone):
+    def __init__(self, name, block_type, zone, adj_zone):
         self.name = name
+        self.block_type = block_type
         self.zone = zone
         self.adj_zone = adj_zone
         self.adj = []
@@ -48,7 +50,7 @@ def load_env(env_desing_path) -> Environment:
     """
     file format:
     1st line -> number os blocks (nodes)
-    n_blocks lines -> <name>,<zone>,<neighbour_zones>
+    n_blocks lines -> <name>,<tipo>,<zone>,<neighbour_zones> // tipo:{house,condo,shelter,empty}
     n_blocks lines -> same order input as the nodes creation to reference the adj nodes
     example:
         4
@@ -61,7 +63,7 @@ def load_env(env_desing_path) -> Environment:
                      -- connections from C to _ with cost x
         A 3          -- connections from D to _ with cost x
     /example
-        in this example C does not have an exit something that in practice will not happen
+        in this example C does not have an exit, something that in practice will not happen
         but is allowed for other project
     """
     envir = Environment()
@@ -69,9 +71,9 @@ def load_env(env_desing_path) -> Environment:
         lines = file.read().splitlines()
         i = 1
         while i <= int(lines[0]):  # create blocks (nodes)
-            name, zone, adj_z = lines[i].split(",")
+            name, block_type, zone, adj_z = lines[i].split(",")
             adj_zones = [int(i) for i in adj_z.split(" ") if len(adj_z) > 0]
-            envir.blocks[name] = (Block(name, zone, adj_zones))
+            envir.blocks[name] = (Block(name, block_type, zone, adj_zones))
             i += 1
 
         for node in envir.blocks.values():
