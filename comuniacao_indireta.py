@@ -3,7 +3,6 @@ from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 import asyncio
 
-
 class AgenteChat(spade.agent.Agent):
     def __init__(self, jid, password):
         super().__init__(jid, password)
@@ -15,9 +14,10 @@ class AgenteChat(spade.agent.Agent):
             msg = await self.receive(timeout=10)  # Espera por 10 segundos
             if msg:
                 print(f"Agente Chat: Mensagem recebida de {msg.sender}: {msg.body}")
-                # Armazena a mensagem no servidor de chat
-                self.agent.mensagens.append((msg.sender, msg.body))
-                print("Agente Chat: Mensagem armazenada.")
+                # Armazena a mensagem e o destinatário na lista do chat
+                target = msg.metadata.get("target", "todos")  # Destinatário
+                self.agent.mensagens.append({"sender": msg.sender, "body": msg.body, "target": target})
+                print(f"Agente Chat: Mensagem armazenada com target '{target}'.")
             else:
                 print("Agente Chat: Nenhuma mensagem recebida.")
 
@@ -30,74 +30,50 @@ class AgenteChat(spade.agent.Agent):
 class AgenteA(spade.agent.Agent):
     class EnviaMensagem(CyclicBehaviour):
         async def run(self):
-            # Cria e envia uma mensagem para o AgenteChat
+            # Cria e envia uma mensagem para o AgenteChat direcionada ao AgenteB
             msg = Message(to="chat@localhost")  # Troque pelo JID do AgenteChat
             msg.set_metadata("performative", "inform")
-            msg.body = "Olá, Agente Chat! Esta é uma mensagem de Agente A."
+            msg.set_metadata("target", "bob@localhost")  # Define o "target" como Agente B
+            msg.body = "Olá, Agente B! Esta mensagem é para você."
 
             await self.send(msg)
-            print("Agente A: Mensagem enviada para o Agente Chat!")
+            print("Agente A: Mensagem enviada para o Agente Chat com target para Agente B!")
 
-            # Aguarda antes de tentar ler as mensagens armazenadas no AgenteChat
-            await asyncio.sleep(2)
-
-            # Acessa as mensagens armazenadas no AgenteChat
-            print("Agente A: Acessando mensagens do chat:")
-            for sender, body in self.agent.chat_agent.mensagens:
-                print(f"Agente A: Mensagem de {sender}: {body}")
-
-            # Decide se quer responder a alguma mensagem
-            if len(self.agent.chat_agent.mensagens) > 0:
-                resposta = Message(to="chat@localhost")
-                resposta.set_metadata("performative", "inform")
-                resposta.body = "Agente A: Respondendo a uma mensagem."
-                await self.send(resposta)
-                print("Agente A: Resposta enviada para o Agente Chat!")
-            # Encerra o comportamento depois de executar
-            await self.agent.stop()
+            await asyncio.sleep(2)  # Aguarda um pouco antes de finalizar
+            await self.agent.stop()  # Encerra o agente A
 
     async def setup(self):
         print("Agente A inicializado!")
-        # Obtém uma referência ao agente de chat
-        self.chat_agent = agent_chat  # Referência direta ao AgenteChat inicializado
         comportamento = self.EnviaMensagem()
         self.add_behaviour(comportamento)
 
 
 class AgenteB(spade.agent.Agent):
-    class EnviaMensagem(CyclicBehaviour):
+    class VerificaMensagensChat(CyclicBehaviour):
         async def run(self):
-            # Envia uma mensagem para o AgenteChat
-            msg = Message(to="chat@localhost")  # Troque pelo JID do AgenteChat
-            msg.set_metadata("performative", "inform")
-            msg.body = "Olá, Agente Chat! Esta é uma mensagem de Agente B."
-
-            await self.send(msg)
-            print("Agente B: Mensagem enviada para o Agente Chat!")
-
-            # Aguarda um pouco antes de tentar ler as mensagens
-            await asyncio.sleep(2)
-
-            # Acessa as mensagens armazenadas no AgenteChat
+            # Verifica as mensagens armazenadas no AgenteChat
             print("Agente B: Acessando mensagens do chat:")
-            for sender, body in self.agent.chat_agent.mensagens:
-                print(f"Agente B: Mensagem de {sender}: {body}")
+            for mensagem in self.agent.chat_agent.mensagens:
+                if mensagem["target"] == "bob@localhost":  # Só responde se o target for Agente B
+                    print(f"Agente B: Mensagem de {mensagem['sender']}: {mensagem['body']}")
 
-            # Decide se quer responder a alguma mensagem
-            if len(self.agent.chat_agent.mensagens) > 0:
-                resposta = Message(to="chat@localhost")
-                resposta.set_metadata("performative", "inform")
-                resposta.body = "Agente B: Respondendo a uma mensagem."
-                await self.send(resposta)
-                print("Agente B: Resposta enviada para o Agente Chat!")
-            # Encerra o comportamento depois de executar
-            await self.agent.stop()
+                    # Cria uma resposta para a mensagem específica
+                    resposta = Message(to="chat@localhost")  # Envia resposta ao Agente Chat
+                    resposta.set_metadata("performative", "inform")
+                    resposta.set_metadata("target", str(mensagem["sender"]))  # Define o remetente original como target
+                    resposta.body = "Agente B: Estou respondendo à sua mensagem."
+
+                    await self.send(resposta)
+                    print("Agente B: Resposta enviada para o Agente Chat!")
+                    break  # Responde uma vez e finaliza para simplificar
+
+            await self.agent.stop()  # Encerra o agente B
 
     async def setup(self):
         print("Agente B inicializado!")
         # Obtém uma referência ao agente de chat
         self.chat_agent = agent_chat  # Referência direta ao AgenteChat inicializado
-        comportamento = self.EnviaMensagem()
+        comportamento = self.VerificaMensagensChat()
         self.add_behaviour(comportamento)
 
 
@@ -127,7 +103,6 @@ async def main():
     await agent_a.stop()
     await agent_b.stop()
     await agent_chat.stop()
-
 
 # Roda o programa
 if __name__ == "__main__":
