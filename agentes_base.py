@@ -138,7 +138,7 @@ async def main():
 
     list_shelter, list_supplier, list_rescue = await start_agents(num_shelter, num_supplier, num_rescue)
 
-    list_shelter[0].update_target("shelter",1)
+    list_shelter[0].update_target("shelter",2)
 
     try:
         await asyncio.sleep(30)
