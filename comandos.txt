@@ -1,0 +1,15 @@
+
+
+CyclicBehaviour() | executado em ciclo até ser parado
+    on_start()
+    run()
+    on_end()
+    send(msg) | envia uma mensagem, msg é a mensagem
+
+
+OneShotBehaviour() | executa apenas 1x
+    run()
+
+
+PeriodicBehaviour() | executa de x em x tempo
+    run()
