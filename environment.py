@@ -1,8 +1,8 @@
 class Connections:  # edge
     def __init__(self, destiny, distance, blocked=False):
-        self.destiny = destiny
-        self.distance = distance
-        self.blocked = blocked
+        self.destiny = destiny  # referencia para o block
+        self.distance: int = distance
+        self.blocked: bool = blocked
 
     def get_destiny(self):
         return self.destiny
@@ -16,13 +16,13 @@ class Connections:  # edge
 
 class Block:  # nodes
     def __init__(self, name, block_type, zone, adj_zone):
-        self.name = name
+        self.name: str = name
         self.block_type = block_type
-        self.zone = zone
-        self.adj_zone = adj_zone
-        self.adj = []
-        self.disaster = 0
-        self.damage = 0
+        self.zone: int = zone
+        self.adj_zone: [int] = adj_zone
+        self.adj = []  # referencia para connections
+        self.disaster: str = "clear"
+        self.damage: int = 0
 
     def get_adj(self) -> list:
         return self.adj
@@ -35,6 +35,7 @@ class Block:  # nodes
 class Environment:
     def __init__(self):
         self.blocks = {}
+        self.agents_contact = {}  # like yellow pages for communication ['rescuer','supply','shelter'] storing the jid
         # performance stats
         self.civilians_rescued = 0
 
@@ -54,10 +55,10 @@ def load_env(env_desing_path) -> Environment:
     n_blocks lines -> same order input as the nodes creation to reference the adj nodes
     example:
         4
-        A,1,2 3
-        B,2,1
-        C,3,1
-        D,1,
+        A,house,1,2 3
+        B,condo,2,1
+        C,empty,3,1
+        D,shelter,1,
         B 4,C 5,D 5  -- connections from A to _ with cost x
         A 10         -- connections from B to _ with cost x
                      -- connections from C to _ with cost x
@@ -73,7 +74,7 @@ def load_env(env_desing_path) -> Environment:
         while i <= int(lines[0]):  # create blocks (nodes)
             name, block_type, zone, adj_z = lines[i].split(",")
             adj_zones = [int(i) for i in adj_z.split(" ") if len(adj_z) > 0]
-            envir.blocks[name] = (Block(name, block_type, zone, adj_zones))
+            envir.blocks[name] = (Block(name, block_type, int(zone), adj_zones))
             i += 1
 
         for node in envir.blocks.values():
@@ -83,7 +84,7 @@ def load_env(env_desing_path) -> Environment:
             conn = [k for k in lines[i].split(",")]
             for j in range(len(conn)):
                 adj_name, dist = conn[j].split(" ")
-                node.adj.append(Connections(envir.blocks[adj_name], dist))
+                node.adj.append(Connections(envir.blocks[adj_name], int(dist)))
             i += 1
 
     return envir
