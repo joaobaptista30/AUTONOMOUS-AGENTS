@@ -1,8 +1,8 @@
 class Connections:  # edge
     def __init__(self, destiny, distance, blocked=False):
-        self.destiny = destiny  #referencia para o block
-        self.distance : int = distance
-        self.blocked : bool = blocked
+        self.destiny = destiny  # referencia para o block
+        self.distance: int = distance
+        self.blocked: bool = blocked
 
     def get_destiny(self):
         return self.destiny
@@ -16,13 +16,13 @@ class Connections:  # edge
 
 class Block:  # nodes
     def __init__(self, name, block_type, zone, adj_zone):
-        self.name : str = name
+        self.name: str = name
         self.block_type = block_type
-        self.zone : int = zone
-        self.adj_zone : [int] = adj_zone
+        self.zone: int = zone
+        self.adj_zone: [int] = adj_zone
         self.adj = []  # referencia para connections
-        self.disaster : int = 0
-        self.damage : int = 0
+        self.disaster: str = "clear"
+        self.damage: int = 0
 
     def get_adj(self) -> list:
         return self.adj
