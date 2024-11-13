@@ -65,15 +65,13 @@ class RescuerAgent(agent.Agent):
         self.position = position  # referencia para o block atual
         self.env = env
         self.transp_space = 5
-        self.requestsID = {}
         self.ocupied = False
 
     class ReceiveMessage(CyclicBehaviour):
         async def run(self):
-            print("receber mensagem rescuers")
             msg = await self.receive(timeout=15)
             if msg:
-                print(f"{self.agent.name} received message from {msg.sender}: {msg.body}")
+                print(f"{self.agent.name} received message from {msg.sender}\nBody: {msg.body}")
                 performative = msg.get_metadata("performative")
                 if performative == 'request_rescue' and not self.agent.ocupied:
                     print("agente rescuer vai considerar")
@@ -87,7 +85,7 @@ class RescuerAgent(agent.Agent):
                     # bid =  calcular dist
                     bid = 10
                     print("estou longe vou responder ")
-                    response = Message(msg.sender)
+                    response = Message(to=str(msg.sender))
                     response.set_metadata("performative", "bid")
                     response.body = f"Estou a uma distancia de {bid}"
                     await self.send(response)
@@ -98,7 +96,7 @@ class RescuerAgent(agent.Agent):
                     timer_ate_block = int(msg.body.split(" ")[-1])
                     self.agent.position = self.agent.env.blocks[msg.body.split(" ")[0]]
                     await asyncio.sleep(timer_ate_block)
-                    resp = Message(to=msg.sender)
+                    resp = Message(to=str(msg.sender))
 
                     if self.agent.position.damage > 3:  # vamos deslocar para um shelter
                         print("vamos para um shelter")
@@ -116,6 +114,7 @@ class RescuerAgent(agent.Agent):
                     else:  # vamos pedir mantimentos
                         print("vais receber mantimentos")
                         self.agent.position.damage = 0  # damage = 0 pois os rescuers ja ajudaram e nao foi um dano severo para precisar de tempo a recuperar
+
 
                         resp.body = f""
 
@@ -144,7 +143,6 @@ class CivilAgent(agent.Agent):
             if self.agent.position.damage and self.agent.position.block_type != 'shelter' and not self.agent.pedido_realizado:
                 # pedir ajuda para rescue
                 # rescue vai decidir se precisa de apenas ajuda medica/comida ou abrigo
-                print(f"{self.agent.name} vou fazer um pedido de rescue")
                 self.agent.add_behaviour(self.agent.AskRescue())
                 self.agent.pedido_realizado = True
 
@@ -164,18 +162,17 @@ class CivilAgent(agent.Agent):
                 msg.set_metadata("performative", "request_rescue")
                 msg.body = f"Need Rescue at {self.agent.position.name}"
                 await self.send(msg)
-                print(f"{self.agent.name}: Requested rescue from {rescuer_jid}")
 
                 response = await self.receive(timeout=15)  # sera suficiente ? | esta a ficar com o mesmo body que a msg ? wtf
                 print(f"resposta do {rescuer_jid} foi {response.body}")
                 # o civil vai indentificar qual o melhor rescuer
                 if response.get_metadata("performative") == "bid":
                     if int(response.body.split(" ")[-1]) < best_dist:  # mais perto melhor
-                        best_resc = response.sender
+                        best_resc = str(response.sender)
                         best_dist = int(response.body.split(" ")[-1])
 
             if best_dist == float("inf"):
-                # self.agent.pedido_realizado = False
+                self.agent.pedido_realizado = False
                 print(f"Nenhum rescuer disponivel\nA pedir ajuda novamente dentro de 3 seg")
                 await asyncio.sleep(3)
                 return
@@ -189,6 +186,7 @@ class CivilAgent(agent.Agent):
 
     class ListenRescuer(CyclicBehaviour):
         async def run(self):
+            print("a ouvir o rescuer para mover")
             msg = await self.receive(timeout=5)
             if msg and self.agent.pedido_realizado:
                 performative = msg.get_metadata("performative")
@@ -243,7 +241,7 @@ async def main():
 
     shelter1 = ShelterAgent("shelter1@localhost", "password", environment.blocks["AH"], environment)
 
-    environment.agents_contact["rescuer"] = ["civil1@localhost"]
+    environment.agents_contact["rescuer"] = ["rescuer1@localhost"]
     environment.agents_contact["shelter"] = ["shelter1@localhost"]
 
     # Start all agents
@@ -254,7 +252,7 @@ async def main():
     environment.blocks["AE"].damage = 10
 
     # Run the simulation for some time to allow interactions
-    await asyncio.sleep(1)  # Adjust as needed to observe behavior
+    await asyncio.sleep(60)  # Adjust as needed to observe behavior
 
     print(civil1.position.name)
     # Stop agents after the test
