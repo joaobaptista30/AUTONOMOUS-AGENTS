@@ -1,8 +1,8 @@
 class Connections:  # edge
     def __init__(self, destiny, distance, blocked=False):
-        self.destiny = destiny
-        self.distance = distance
-        self.blocked = blocked
+        self.destiny = destiny  #referencia para o block
+        self.distance : int = distance
+        self.blocked : bool = blocked
 
     def get_destiny(self):
         return self.destiny
@@ -16,13 +16,13 @@ class Connections:  # edge
 
 class Block:  # nodes
     def __init__(self, name, block_type, zone, adj_zone):
-        self.name = name
+        self.name : str = name
         self.block_type = block_type
-        self.zone = zone
-        self.adj_zone = adj_zone
-        self.adj = []
-        self.disaster = 0
-        self.damage = 0
+        self.zone : int = zone
+        self.adj_zone : [int] = adj_zone
+        self.adj = []  # referencia para connections
+        self.disaster : int = 0
+        self.damage : int = 0
 
     def get_adj(self) -> list:
         return self.adj
@@ -35,7 +35,7 @@ class Block:  # nodes
 class Environment:
     def __init__(self):
         self.blocks = {}
-        self.agents_contact = {}  # like yellow pages for communication ['resque','supply','shelter'] storing the jid
+        self.agents_contact = {}  # like yellow pages for communication ['rescuer','supply','shelter'] storing the jid
         # performance stats
         self.civilians_rescued = 0
 
