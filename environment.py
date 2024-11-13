@@ -35,6 +35,7 @@ class Block:  # nodes
 class Environment:
     def __init__(self):
         self.blocks = {}
+        self.agents_contact = {}  # like yellow pages for communication ['resque','supply','shelter'] storing the jid
         # performance stats
         self.civilians_rescued = 0
 
@@ -54,10 +55,10 @@ def load_env(env_desing_path) -> Environment:
     n_blocks lines -> same order input as the nodes creation to reference the adj nodes
     example:
         4
-        A,1,2 3
-        B,2,1
-        C,3,1
-        D,1,
+        A,house,1,2 3
+        B,condo,2,1
+        C,empty,3,1
+        D,shelter,1,
         B 4,C 5,D 5  -- connections from A to _ with cost x
         A 10         -- connections from B to _ with cost x
                      -- connections from C to _ with cost x
