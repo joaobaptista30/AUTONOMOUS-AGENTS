@@ -37,7 +37,10 @@ class ShelterAgent(agent.Agent):
                     await self.send(response)
                     print(f"{self.agent.name}: Responded to {msg.sender.jid} with space info.")
                 elif performative == "inform" and msg.body == "Supplying requested resources.":
-                    self.agent.current_supplies += 50
+                    if msg.sender.num_suplplies() < self.agent.max_supplies - self.agent.current_supplies:
+                        self.agent.current_supplies += msg.sender.num_supplies
+                    else:
+                        self.agent.current_supplies = self.agent.max_supplies
                     print(f"{self.agent.name}: Supplies replenished. Current supplies: {self.agent.current_supplies}")
                     self.agent.flag = True
                 else:
@@ -65,6 +68,55 @@ class ShelterAgent(agent.Agent):
         self.add_behaviour(self.ReceiveMessage())
         self.add_behaviour(self.CheckSupplies())
 
+class SupplierAgent(agent.Agent):
+    def __init__(self, jid, password, position):
+        super().__init__(jid, password)
+        self.position = position
+        self.max_supplies = 250
+        self.num_supplies = self.max_supplies
+        self.occupied = False
+
+    class ReceiveMessageBehaviour(CyclicBehaviour):
+        async def run(self):
+            msg = await self.receive(timeout=5)
+            if msg:
+                performative = msg.get_metadata("performative")
+                if performative == "request_supplies":
+                    print(f"{self.agent.name} received request from {msg.sender}: {msg.body}")
+                    deciding_behaviour = self.agent.DecidingWhosGoing()
+                    self.agent.add_behaviour(deciding_behaviour)
+                    await deciding_behaviour.join()
+
+                    if deciding_behaviour.should_supply:
+                        self.agent.occupied = True
+                        response = Message(to=msg.sender.jid)
+                        response.set_metadata("performative", "inform")
+                        response.body = "Supplying requested resources."
+                        needed_supplies = msg.sender.max_supplies - msg.sender.num_supplies
+                        available_supplies = self.agent.num_supplies
+                        await self.send(response)
+                        print(f"{self.agent.name}: Responded to {msg.sender.jid} with supply confirmation.")
+                        await asyncio.sleep(5)
+                        if needed_supplies>available_supplies:
+                            self.agent.num_supplies = 0
+                        else:
+                            self.agent.num_supplies -= needed_supplies
+                        print(f"{self.agent.name}: Supplies left after response: {self.agent.num_supplies}")
+                        self.agent.occupied = False
+                    else:
+                        print(f"{self.agent.name}: Not supplying to {msg.sender.jid} this time.")
+                else:
+                    print(f"{self.agent.name} received an unhandled message from {msg.sender.jid}: {msg.body}")
+
+    class DecidingWhosGoing(OneShotBehaviour):
+        async def run(self):
+            self.should_supply = self.agent.num_supplies > 0
+
+    async def setup(self):
+        print(f"Supplier Agent {self.name} started with max supplies {self.max_supplies}.")
+        self.add_behaviour(self.ReceiveMessageBehaviour())
+
+
 
 class RescuerAgent(agent.Agent):
     def __init__(self, jid, password, position, env):
@@ -72,15 +124,15 @@ class RescuerAgent(agent.Agent):
         self.position = position  # referencia para o block atual
         self.env = env
         self.transp_space = 5
-        self.ocupied = False
+        self.occupied = False
 
     class ReceiveMessage(CyclicBehaviour):
         async def run(self):
             msg = await self.receive(timeout=15)
             if msg:
-                if self.agent.ocupied:
+                if self.agent.occupied:
                     response = Message(to=str(msg.sender))
-                    response.set_metadata("performative", "ocupied")
+                    response.set_metadata("performative", "occupied")
                     response.body = f""
                     await self.send(response)
                     return
@@ -108,7 +160,7 @@ class RescuerAgent(agent.Agent):
                 elif performative == 'confirm_rescue':
                     # vamos mover ate ao local do civil
                     # depois vamos identificar se é preciso deslocar o civil ou pedir mantimentos
-                    self.agent.ocupied = True
+                    self.agent.occupied = True
                     timer_ate_block = int(msg.body.split(" ")[-1])
                     self.agent.position = self.agent.env.blocks[msg.body.split(" ")[0]]
                     await asyncio.sleep(timer_ate_block)
@@ -125,7 +177,7 @@ class RescuerAgent(agent.Agent):
                         await self.send(resp)
                         await asyncio.sleep(dist_shelter)
 
-                        self.agent.ocupied = False
+                        self.agent.occupied = False
                         self.agent.position = self.agent.env.blocks[shelter]
                     else:  # vamos pedir mantimentos
                         print("vais receber mantimentos")
@@ -134,7 +186,7 @@ class RescuerAgent(agent.Agent):
 
                         resp.body = f""
 
-                elif performative == 'request_transport' and not self.agent.ocupied:
+                elif performative == 'request_transport' and not self.agent.occupied:
                     ...
                 elif performative == 'confirm_transport':
                     ...
