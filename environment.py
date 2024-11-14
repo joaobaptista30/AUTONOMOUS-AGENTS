@@ -36,6 +36,7 @@ class Environment:
     def __init__(self):
         self.blocks = {}
         self.agents_contact = {}  # like yellow pages for communication ['rescuer','supply','shelter'] storing the jid
+        self.agents_pos = {} # key: agent jid | value: name
         # performance stats
         self.civilians_rescued = 0
 

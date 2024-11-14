@@ -11,6 +11,25 @@ from algorithms import dijkstra_min_distance
 TODO:
     adicionar logica para o melhor shelter de abrigo ao civil
     adicionar logica para quando apenas precisa de mantimentos
+    
+    
+    negociacao entre agentes:
+    
+    civil pede ajuda ao rescuer ->
+        rescuers negociam entre si para decidir qual vai
+        ( logica: civil vai pedir a uma rescuer aleatorio ajuda; depois esse rescuer vai mandar mensagem a todos 
+        os rescuers e o inicial decide a quem é atribuida a tarefa de salvamento;
+    
+    rescuer quer saber qual melhor shelter -> contract net
+        rescuer recebe a bid de cada shelter e escolhe o melhor
+    rescuer pede mantimentos para o civil -> 
+        supply negociam entre si para decidir qual vai
+    
+    
+    shelter pede mantimentos ao supply ->
+        supply negociam entre si para decidir qual vai
+    shelter chama um rescuer nao ocupado e mais perto para levar o civil a casa
+        rescuers negociam entre si para decidir qual vai
 '''
 
 
