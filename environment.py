@@ -51,7 +51,7 @@ def load_env(env_desing_path) -> Environment:
     """
     file format:
     1st line -> number os blocks (nodes)
-    n_blocks lines -> <name>,<tipo>,<zone>,<neighbour_zones> // tipo:{house,condo,shelter,empty}
+    n_blocks lines -> <name>,<type>,<zone>,<neighbour_zones> // type:{house,condo,shelter,supply,empty}
     n_blocks lines -> same order input as the nodes creation to reference the adj nodes
     example:
         4
