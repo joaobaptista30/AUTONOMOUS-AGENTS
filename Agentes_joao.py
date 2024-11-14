@@ -5,6 +5,13 @@ from spade.behaviour import CyclicBehaviour
 from spade.message import Message
 from spade.behaviour import OneShotBehaviour
 from environment import load_env
+from algorithms import dijkstra_min_distance
+
+'''
+TODO:
+    adicionar logica para o melhor shelter de abrigo ao civil
+    adicionar logica para quando apenas precisa de mantimentos
+'''
 
 
 class ShelterAgent(agent.Agent):
@@ -71,20 +78,29 @@ class RescuerAgent(agent.Agent):
         async def run(self):
             msg = await self.receive(timeout=15)
             if msg:
-                print(f"{self.agent.name} received message from {msg.sender}\nBody: {msg.body}")
+                if self.agent.ocupied:
+                    response = Message(to=str(msg.sender))
+                    response.set_metadata("performative", "ocupied")
+                    response.body = f""
+                    await self.send(response)
+                    return
+                # print(f"{self.agent.name} received message from {msg.sender}\nBody: {msg.body}")
                 performative = msg.get_metadata("performative")
-                if performative == 'request_rescue' and not self.agent.ocupied:
-                    print("agente rescuer vai considerar")
+                if performative == 'request_rescue':
                     block_name = msg.body.split(" ")[-1]
+                    print(f"{self.agent.name} rescuer vai considerar para o civil {block_name}")
 
                     if (self.agent.env.blocks[block_name].zone != self.agent.position.zone and
-                            self.agent.position.zone not in self.agent.env.blocks[block_name].adjs_zone):
-                        print("estou longe ?? ")
+                            self.agent.env.blocks[block_name].zone not in self.agent.position.adj_zone):
+                        print("estou longe vou ignorar")
+                        response = Message(to=str(msg.sender))
+                        response.set_metadata("performative", "far_away")
+                        response.body = f""
+                        await self.send(response)
                         return  # esta fora do alcance de civil
 
-                    # bid =  calcular dist
-                    bid = 10
-                    print("estou longe vou responder ")
+                    print("estou na area vou responder")
+                    bid = dijkstra_min_distance(self.agent.env, self.agent.position.name, block_name)
                     response = Message(to=str(msg.sender))
                     response.set_metadata("performative", "bid")
                     response.body = f"Estou a uma distancia de {bid}"
@@ -164,16 +180,16 @@ class CivilAgent(agent.Agent):
                 await self.send(msg)
 
                 response = await self.receive(timeout=15)  # sera suficiente ? | esta a ficar com o mesmo body que a msg ? wtf
-                print(f"resposta do {rescuer_jid} foi {response.body}")
                 # o civil vai indentificar qual o melhor rescuer
-                if response.get_metadata("performative") == "bid":
+                if response and response.get_metadata("performative") == "bid":
+                    print(f"resposta do {rescuer_jid} foi {response.body}")
                     if int(response.body.split(" ")[-1]) < best_dist:  # mais perto melhor
                         best_resc = str(response.sender)
                         best_dist = int(response.body.split(" ")[-1])
 
             if best_dist == float("inf"):
                 self.agent.pedido_realizado = False
-                print(f"Nenhum rescuer disponivel\nA pedir ajuda novamente dentro de 3 seg")
+                print(f"Nenhum rescuer disponivel para {self.agent.name}\nA pedir ajuda novamente dentro de 3 seg")
                 await asyncio.sleep(3)
                 return
 
@@ -184,18 +200,18 @@ class CivilAgent(agent.Agent):
             msg.body = f"{self.agent.position.name} vir ate aqui no tempo informado {best_dist}"
             await self.send(msg)
 
-    class ListenRescuer(CyclicBehaviour):
-        async def run(self):
-            print("a ouvir o rescuer para mover")
-            msg = await self.receive(timeout=5)
-            if msg and self.agent.pedido_realizado:
-                performative = msg.get_metadata("performative")
+            # awd
+            indicacoes_rescuer = await self.receive(timeout=best_dist+3)
+            if indicacoes_rescuer and self.agent.pedido_realizado:
+                performative = indicacoes_rescuer.get_metadata("performative")
 
                 if performative == "move_shelter":
-                    self.agent.position = self.agent.env.blocks[msg.body.split(" ")[-1]]
-                    dist = int(msg.body.split(" ")[0])
-                    await asyncio.sleep(dist)
+                    nome_shelter = indicacoes_rescuer.body.split(' ')[-1]
+                    print(f"A mover {self.agent.name} para o shelter {nome_shelter}")
+                    self.agent.position = self.agent.env.blocks[nome_shelter]
+                    dist = int(indicacoes_rescuer.body.split(" ")[0])
                     self.agent.deslocado = True
+                    await asyncio.sleep(dist)
                     self.agent.pedido_realizado = False
 
                 elif performative == 'get_supply':
@@ -204,7 +220,6 @@ class CivilAgent(agent.Agent):
     async def setup(self):
         print(f"Civil Agent {self.name} started.")
         self.add_behaviour(self.AnalyzeDanger())
-        self.add_behaviour(self.ListenRescuer())
 
 
 async def populate_city(env):
@@ -235,32 +250,45 @@ async def populate_city(env):
 async def main():
     environment = load_env("./city_desing.txt")
 
+    # iniciar agents manualmente para teste
     civil1 = CivilAgent("civil1@localhost", "password", environment.blocks["AE"], environment)
+    civil2 = CivilAgent("civil2@localhost", "password", environment.blocks["GG"], environment)
 
     rescuer1 = RescuerAgent("rescuer1@localhost", "password", environment.blocks["AF"], environment)
+    rescuer2 = RescuerAgent("rescuer2@localhost", "password", environment.blocks["FA"], environment)
 
     shelter1 = ShelterAgent("shelter1@localhost", "password", environment.blocks["AH"], environment)
+    shelter2 = ShelterAgent("shelter2@localhost", "password", environment.blocks["GH"], environment)
 
-    environment.agents_contact["rescuer"] = ["rescuer1@localhost"]
-    environment.agents_contact["shelter"] = ["shelter1@localhost"]
+    environment.agents_contact["rescuer"] = ["rescuer1@localhost", "rescuer2@localhost"]
+    environment.agents_contact["shelter"] = ["shelter1@localhost", "shelter2@localhost"]
 
     # Start all agents
     await rescuer1.start(auto_register=True)
+    await rescuer2.start(auto_register=True)
+    await shelter1.start(auto_register=True)
     await shelter1.start(auto_register=True)
     await civil1.start(auto_register=True)
+    await civil2.start(auto_register=True)
+    print()
 
     environment.blocks["AE"].damage = 10
+    environment.blocks["GG"].damage = 10
 
     # Run the simulation for some time to allow interactions
     await asyncio.sleep(60)  # Adjust as needed to observe behavior
 
     print(civil1.position.name)
+    print(civil2.position.name)
     # Stop agents after the test
     await civil1.stop()
+    await civil2.stop()
 
     await rescuer1.stop()
+    await rescuer2.stop()
 
     await shelter1.stop()
+    await shelter2.stop()
 
 
 if __name__ == "__main__":

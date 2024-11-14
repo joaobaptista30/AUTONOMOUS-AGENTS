@@ -84,7 +84,7 @@ def load_env(env_desing_path) -> Environment:
             conn = [k for k in lines[i].split(",")]
             for j in range(len(conn)):
                 adj_name, dist = conn[j].split(" ")
-                node.adj.append(Connections(envir.blocks[adj_name], dist))
+                node.adj.append(Connections(envir.blocks[adj_name], int(dist)))
             i += 1
 
     return envir
