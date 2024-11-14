@@ -74,7 +74,7 @@ def load_env(env_desing_path) -> Environment:
         while i <= int(lines[0]):  # create blocks (nodes)
             name, block_type, zone, adj_z = lines[i].split(",")
             adj_zones = [int(i) for i in adj_z.split(" ") if len(adj_z) > 0]
-            envir.blocks[name] = (Block(name, block_type, zone, adj_zones))
+            envir.blocks[name] = (Block(name, block_type, int(zone), adj_zones))
             i += 1
 
         for node in envir.blocks.values():
