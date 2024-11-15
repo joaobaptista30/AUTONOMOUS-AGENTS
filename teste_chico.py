@@ -7,6 +7,7 @@ from spade.message import Message
 from spade.behaviour import OneShotBehaviour
 from environment import load_env
 from algorithms import dijkstra_min_distance
+from spade.behaviour import PeriodicBehaviour
 
 '''
 TODO:
@@ -52,14 +53,12 @@ class ShelterAgent(agent.Agent):
                         response.set_metadata("performative", "confirm" )
                         response.body = "Supplies received"
                         self.agent.flag = True
-                    if body == "Delivering civilians":
-                        return
                     else:
                         return
                 elif performative == "confirm":
                     body = msg.body
-                    if body.split()[-1] == "civilian":
-                        self.agent.num_people += body.split()[-2]
+                    if body.split()[-1] == "civilians":
+                        self.agent.num_people += int(body.split()[-2])
                 else:
                     print(f"{self.agent.name} received an unhandled message from {msg.sender.jid}: {msg.body}")
 
@@ -84,10 +83,15 @@ class ShelterAgent(agent.Agent):
                 self.agent.add_behaviour(self.agent.AskSupplies())
             await asyncio.sleep(10)
 
+    class DistributeSupplies(PeriodicBehaviour):
+        async def run(self):
+            self.agent.num_supplies -= self.agent.num_people
+
     async def setup(self):
         print(f"Shelter Agent {self.name} started with max people {self.max_people} and supplies {self.max_supplies}.")
         self.add_behaviour(self.ReceiveMessage())
         self.add_behaviour(self.CheckSupplies())
+        self.add_behaviour(self.DistributeSupplies(period=30))
 
 class SupplierAgent(agent.Agent):
     def __init__(self, jid, password, position):
