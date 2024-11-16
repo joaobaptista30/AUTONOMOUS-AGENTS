@@ -149,7 +149,7 @@ class SupplierAgent(agent.Agent):
                         needed_supplies = msg.sender.needed_suplies
                         await self.send(response)
                     else:
-                        response.body = "arrived at the point of suply"
+                        response.body = "arrived at the point of supply"
                         await self.send(response)
                         ...#entrega de supplys no local
 
