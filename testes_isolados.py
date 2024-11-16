@@ -155,10 +155,16 @@ class SupplierAgent(agent.Agent):
                     await asyncio.sleep(distancia)
                     self.agent.position = msg.sender.position
                     response = Message(to=str(msg.sender))
-                    response.set_metadata("performative", "inform")
-                    response.body = "Supplying requested resources."
-                    needed_supplies = msg.sender.needed_suplies
-                    await self.send(response)
+                    response.set_metadata("performative", "inform_done")
+                    if msg.sender in self.agent.env.agents_contact["shelter"]:
+                        response.body = "Supplying requested resources."
+                        needed_supplies = msg.sender.needed_suplies
+                        await self.send(response)
+                    else:
+                        response.body = "arrived at the point of supply"
+                        await self.send(response)
+                        ...#entrega de supplys no local
+
                 if performative == "confirm":
                     if needed_supplies > self.agent.num_supplies:
                         self.agent.num_supplies = 0
@@ -373,6 +379,34 @@ class RescuerAgent(agent.Agent):
                 self.agent.occupied = False
                 self.agent.num_need_save = 0
 
+    class AskSupplies(OneShotBehaviour):
+        async def run(self):
+            options = {}
+            position_in_need = self.agent.position.name
+            for agent_jid in self.agent.env.agents_contact["suppliers"]:
+                cpf = Message(to=agent_jid)
+                cpf.set_metadata("performative",  "cpf")
+                cpf.body = "How many supplies you have and where are you"
+                await self.send(cpf)
+                msg = await self.receive(timeout=10)
+                if msg.get_metadata("performative") == "propouse":
+                    options[str(msg.sender)] = (msg.body.split()[1],msg.body.split()[-2])
+            best_supplier = None
+            best_distance = float("inf")
+            for supplier in options:
+                if options[supplier][0] < best_distance:
+                    if best_supplier != None:
+                        refuse_request = Message(to=best_supplier)
+                        refuse_request.set_metadata("performative", "reject_proposal")
+                        refuse_request.body = f"Not accepted"
+                        await self.send(refuse_request)
+                    best_supplier = supplier
+                    best_distance = options[supplier][0]
+            accept = Message(to=best_supplier)
+            accept.set_metadata("performative", "accept_proposal")
+            accept.body = f"Vai para o ponto {self.agent.position.name}"
+            await self.send(accept)
+            await self.receive(timeout=10)
     async def setup(self):
         print(f"Rescue Agent {self.name} started.")
         self.add_behaviour(self.ReceiveMessage())
