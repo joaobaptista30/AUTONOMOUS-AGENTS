@@ -35,8 +35,7 @@ class Block:  # nodes
 class Environment:
     def __init__(self):
         self.blocks = {}
-        self.agents_contact = {}  # like yellow pages for communication ['rescuer','supply','shelter'] storing the jid
-        self.agents_pos = {} # key: agent jid | value: name
+        self.agents_contact = {}  # like yellow pages for communication ['rescuer','supply','shelter'] storing a pointer to the agent
         # performance stats
         self.civilians_rescued = 0
 
