@@ -335,38 +335,66 @@ class CivilAgent(agent.Agent):
         self.home = position  # casa de origem, onde vai depois dos danos (guardar referencia para o block)
         self.position = position  # referencia para posicao atual
         self.env = env
-        self.deslocado = False  # saber se esta em abrigo ou em casa
+        self.deslocado = ""  # str vazia significa que esta em casa, se estiver com texto entao esse texto vai ser o jid do shelter
         self.pedido_realizado = False
+
+    class ReceiveMessage(CyclicBehaviour):
+        async def run(self):
+            msg = await self.receive(timeout=15)
+            if msg:
+                message_text = msg.body.split(" ")
+                performative = msg.get_metadata("performative")
+                if performative == "inform":
+                    self.agent.pedido_realizado = False  # ja realizamos o pedido
+                    if message_text[0] == "Transporte":  # regressou a casa
+                        self.agent.deslocado = ""
+                        self.agent.position = self.agent.home
+                    else:  # chegou ao shelter
+                        for shelter_agent in self.agent.env.agents_contact["shelter"]:
+                            if shelter_agent.postion.name == message_text[-1]:
+                                # como temos poucos shelter_aget podemos usar esta forma sem grande preocupacao de efficiencia
+                                # caso tivessemos muitos sera melhor outra implementacao
+                                self.agent.deslocado = str(shelter_agent.jid)
+                                self.agent.position = shelter_agent.postion
+                                break
+                else:
+                    print(f"mensagem sem comportamento definido {str(msg.sender)} | msg\n{msg.body}\n")
 
     class AnalyzeDanger(CyclicBehaviour):
         async def run(self):
-            # completo ?
             if self.agent.position.damage and self.agent.position.block_type != 'shelter' and not self.agent.pedido_realizado:
-                # pedir ajuda para rescue
-                # rescue vai decidir se precisa de apenas ajuda medica/comida ou abrigo
+                # pedir ajuda a um rescuer
                 self.agent.add_behaviour(self.agent.AskRescue())
                 self.agent.pedido_realizado = True
 
-            # por fazer
             elif self.agent.home.damage == 0 and self.agent.deslocado and not self.agent.pedido_realizado:
-                # agente retorna a casa mas precisa de transporte
-                # mandar mensagem ao shelter para ele fazer request a um rescuer para transporte
+                # agente pode retornar a casa mas precisa de transporte
+                self.agent.add_behaviour(self.agent.AskTransport())
                 self.agent.pedido_realizado = True
 
     class AskRescue(OneShotBehaviour):
         async def run(self):
             print(f"{self.agent.name}: Precisa de ajuda no block: {self.agent.position.name}")
+            for rescue_agent in self.agent.env.agents_contact["rescuer"]:
+                if rescue_agent.occupied: continue
+                msg = Message(to=str(rescue_agent.jid))
+                msg.set_metadata("performative", "request")
+                msg.body = f"Ajuda na posicao {self.agent.position.name}"
+                await self.send(msg)
+                break
 
-            agent_jid = random.choice(self.agent.env.agents_contact["rescuer"])
-            msg = Message(to=agent_jid)
+    class AskTransport(OneShotBehaviour):
+        async def run(self):
+            print(f"{self.agent.name}: pediu transporte para voltar a casa")
+            msg = Message(to=self.agent.deslocado)
             msg.set_metadata("performative", "request")
-            msg.body = f"Need Rescue at {self.agent.position.name}"
+            msg.body = f"Transporte para a minha casa {self.agent.position.name}"
             await self.send(msg)
-
 
     async def setup(self):
         print(f"Civil Agent {self.name} started.")
         self.add_behaviour(self.AnalyzeDanger())
+        self.add_behaviour(self.ReceiveMessage())
 
 
 async def populate_city(env):
@@ -407,8 +435,8 @@ async def main():
     shelter1 = ShelterAgent("shelter1@localhost", "password", environment.blocks["AH"], environment)
     shelter2 = ShelterAgent("shelter2@localhost", "password", environment.blocks["GH"], environment)
 
-    environment.agents_contact["rescuer"] = ["rescuer1@localhost", "rescuer2@localhost"]
-    environment.agents_contact["shelter"] = ["shelter1@localhost", "shelter2@localhost"]
+    environment.agents_contact["rescuer"] = [rescuer1, rescuer2]
+    environment.agents_contact["shelter"] = [shelter1, shelter2]
 
     # Start all agents
     await rescuer1.start(auto_register=True)
