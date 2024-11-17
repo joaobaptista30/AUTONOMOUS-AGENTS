@@ -46,6 +46,8 @@ def dijkstra_min_distance(graph, start, target):
 if __name__ == "__main__":
     env = load_env("./city_desing.txt")
     i = time.time()
-    a_to_b = dijkstra_min_distance(env, "AA", "DA")
+    P1 = "DE"
+    P2 = "FA"
+    a_to_b = dijkstra_min_distance(env, P1, P2)
 
-    print(f"dist de AA DA min={a_to_b} calculado em {time.time()-i:.2e}")
+    print(f"dist de {P1} a {P2} min={a_to_b} calculado em {time.time()-i:.2e}")
