@@ -16,7 +16,7 @@ AN,empty,1,2 4 5
 BA,condo,2,1 3 5 6
 BB,shelter,2,1 3 5 6
 BC,house,2,1 3 5 6
-BD,supply,2,1 3 5 6
+BD,supplyer,2,1 3 5 6
 BE,empty,2,1 3 5 6
 BF,empty,2,1 3 5 6
 BG,house,2,1 3 5 6
@@ -40,7 +40,7 @@ DH,condo,4,1 5
 DI,empty,4,1 5
 DJ,empty,4,1 5
 DK,shelter,4,1 5
-DL,supply,4,1 5
+DL,supplyer,4,1 5
 DM,empty,4,1 5
 DN,house,4,1 5
 DO,house,4,1 5
@@ -61,7 +61,7 @@ FB,empty,6,2 3 5 7
 FC,empty,6,2 3 5 7
 FD,house,6,2 3 5 7
 FE,shelter,6,2 3 5 7
-FF,supply,6,2 3 5 7
+FF,supplyer,6,2 3 5 7
 FG,empty,6,2 3 5 7
 FH,house,6,2 3 5 7
 FI,condo,6,2 3 5 7

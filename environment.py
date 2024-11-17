@@ -35,7 +35,7 @@ class Block:  # nodes
 class Environment:
     def __init__(self):
         self.blocks = {}
-        self.agents_contact = {}  # like yellow pages for communication ['rescuer','supply','shelter'] storing a pointer to the agent
+        self.agents_contact = {}  # like yellow pages for communication ['rescuer','supplyer','shelter'] storing a pointer to the agent
         # performance stats
         self.civilians_rescued = 0
 
@@ -51,7 +51,7 @@ def load_env(env_desing_path) -> Environment:
     """
     file format:
     1st line -> number os blocks (nodes)
-    n_blocks lines -> <name>,<type>,<zone>,<neighbour_zones> // type:{house,condo,shelter,supply,empty}
+    n_blocks lines -> <name>,<type>,<zone>,<neighbour_zones> // type:{house,condo,shelter,supplyer,empty}
     n_blocks lines -> same order input as the nodes creation to reference the adj nodes
     example:
         4
