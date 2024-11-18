@@ -144,6 +144,7 @@ class ShelterAgent(agent.Agent):
 
     class CheckSupplies(CyclicBehaviour):
         async def run(self):
+            print(f"-->Eu {self.agent.name} tenho {self.agent.current_supplies}")
             if not self.agent.supplies_requested and self.agent.current_supplies <= self.agent.max_supplies / 2:
                 self.agent.supplies_requested = True
                 self.agent.add_behaviour(self.agent.AskSupplies())
@@ -151,13 +152,13 @@ class ShelterAgent(agent.Agent):
 
     class DistributeSupplies(PeriodicBehaviour):
         async def run(self):
-            self.agent.current_supplies -= self.agent.num_people
+            self.agent.current_supplies -= 10*self.agent.num_people
 
     async def setup(self):
         print(f"Shelter Agent {self.name} started with max people {self.max_people} and supplies {self.max_supplies}.")
         self.add_behaviour(self.ReceiveMessage())
         self.add_behaviour(self.CheckSupplies())
-        self.add_behaviour(self.DistributeSupplies(period=30))
+        self.add_behaviour(self.DistributeSupplies(period=2))
 
 
 class SupplierAgent(agent.Agent):
