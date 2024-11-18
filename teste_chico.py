@@ -57,7 +57,8 @@ class ShelterAgent(agent.Agent):
                         ask_transport = Message(to=str(rescue_agent.jid))
                         ask_transport.set_metadata("performative", "request")
                         ask_transport.body = f"Transporte {msg.body.split(' ')[1]} civis do {civil_jid} para {civil_pos} primeiro vem ate mim em {shelter_pos}"
-                        print(f"--> {self.agent.name} vai pedir ao {rescue_agent.name} para iniciar o ContractNet para o {civil_jid.split('@')[0]} voltar a {civil_pos}")
+                        print(
+                            f"--> {self.agent.name} vai pedir ao {rescue_agent.name} para iniciar o ContractNet para o {civil_jid.split('@')[0]} voltar a {civil_pos}")
                         await self.send(ask_transport)
 
                 elif performative == "inform-done":
@@ -86,7 +87,8 @@ class ShelterAgent(agent.Agent):
                         # um civil foi transportado de volta para casa, atualizar contagem de civis
                         self.agent.num_people -= int(msg.body.split(" ")[1])
                 elif performative == "failure":
-                    if "rescuer" in str(msg.sender):  # contractnet para saber melhor rescuer para transportar os civis falhou
+                    if "rescuer" in str(
+                            msg.sender):  # contractnet para saber melhor rescuer para transportar os civis falhou
                         failed_transp = Message(to=msg.body.split(" ")[-1])
                         failed_transp.set_metadata("performative", "failure")
                         failed_transp.body = "Nenhum rescuer disponivel para te transportar"
@@ -111,22 +113,21 @@ class ShelterAgent(agent.Agent):
                 if msg and msg.get_metadata("performative") == "propose":
                     options[msg.sender] = [msg.body.split()[1], msg.body.split()[5]]
             best_supplier = None
-            mais_perto = float("inf")
+            closest = float("inf")
             for key in options:
-                if options[key][1] < mais_perto:
+                if options[key][1] < closest:
+                    response = Message(to=best_supplier)
+                    response.set_metadata("performative", "reject_proposal")
+                    response.body = f""
+                    await self.send(response)
+
                     best_supplier = key
-                    mais_perto = options[key][1]
-            for key in options:
-                if key != best_supplier:
-                    response = Message(to=key)
-                    response.set_metadata("performative","reject_proposal")
-                    response.body = f""
-                    await self.send(response)
-                else:
-                    response = Message(to=key)
-                    response.set_metadata("performative", "accept_proposal")
-                    response.body = f""
-                    await self.send(response)
+                    closest = options[key][1]
+
+            response = Message(to=best_supplier)
+            response.set_metadata("performative", "accept_proposal")
+            response.body = f""
+            await self.send(response)
 
     class CheckSupplies(CyclicBehaviour):
         async def run(self):
@@ -162,30 +163,30 @@ class SupplierAgent(agent.Agent):
                 performative = msg.get_metadata("performative")
                 if performative == "cpf":
                     if not self.agent.occupied:
-                        distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.sender.position)
+                        distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.sender.position.name)
                         response = Message(to=str(msg.sender))
                         response.set_metadata("performative", "propose")
                         response.body = f"Tenho {self.agent.num_supplies} e estou a {distance} metros"
                         await self.send(response)
                     else:
                         response = Message(to=str(msg.sender))
-                        response.set_metadata("performative","refuse")
+                        response.set_metadata("performative", "refuse")
                         response.body = f""
                         await self.send(response)
                 if performative == "query_ref" and not self.agent.occupied:
                     if not self.agent.occupied:
                         if msg.sender in self.agent.env.agents_contact["shelter"]:
                             response = Message(to=str(msg.sender))
-                            response.set_metadata("performative","inform")
+                            response.set_metadata("performative", "inform")
                             response.body = f"Tenho {self.agent.num_supplies} e estou na posiçao {self.agent.position.name}"
                             await self.send(response)
                     else:
                         response = Message(to=str(msg.sender))
-                        response.set_metadata("performative","refuse")
+                        response.set_metadata("performative", "refuse")
                 if performative == "accept_proposal":
                     self.agent.occupied = True
                     body = msg.body
-                    distancia = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.sender.position)
+                    distancia = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.sender.position.name)
                     await asyncio.sleep(distancia)
                     self.agent.position = msg.sender.position
                     response = Message(to=str(msg.sender))
@@ -197,7 +198,7 @@ class SupplierAgent(agent.Agent):
                     else:
                         response.body = "arrived at the point of supply"
                         await self.send(response)
-                        ...#entrega de supplys no local
+                        ...  # entrega de supplys no local
 
                 if performative == "confirm":
                     if needed_supplies > self.agent.num_supplies:
@@ -284,7 +285,8 @@ class RescuerAgent(agent.Agent):
                         block_name = msg.body.split(" ")[-1]  # pos do shelter
                         civil_jid = msg.body.split(" ")[4]
                         civil_pos = msg.body.split(" ")[6]
-                        print(f"\n--> {self.agent.name} vai procurar o melhor rescuer para ir transportar o {civil_jid.split('@')[0]} de {block_name} ate {civil_pos}")
+                        print(
+                            f"\n--> {self.agent.name} vai procurar o melhor rescuer para ir transportar o {civil_jid.split('@')[0]} de {block_name} ate {civil_pos}")
                         self.agent.considering = block_name
                         self.agent.requester_contact = str(msg.sender)  # jid do shelter que fez o pedido
                         self.agent.num_need_save = int(msg.body.split(" ")[1])
@@ -311,17 +313,20 @@ class RescuerAgent(agent.Agent):
                         response.set_metadata("performative", "inform-done")
                         response.body = f"cheguei ao local {self.agent.position.name}"
                         await asyncio.sleep(timer_ate_block)
-                        print(f"--> Eu {self.agent.name} cheguei ao {self.agent.requester_contact.split('@')[0]} em {self.agent.position.name} apos viajar por {timer_ate_block}")
+                        print(
+                            f"--> Eu {self.agent.name} cheguei ao {self.agent.requester_contact.split('@')[0]} em {self.agent.position.name} apos viajar por {timer_ate_block}")
                         await self.send(response)
 
                         # --done--
-                        if self.agent.position.damage > 3:   # vamos deslocar para um shelter
-                            print(f"\n--> Eu {str(self.agent.name)} vou escolher um shelter para o civil {self.agent.requester_contact.split('@')[0]}")
+                        if self.agent.position.damage > 3:  # vamos deslocar para um shelter
+                            print(
+                                f"\n--> Eu {str(self.agent.name)} vou escolher um shelter para o civil {self.agent.requester_contact.split('@')[0]}")
                             self.agent.add_behaviour(self.agent.FindShelter())
 
                         # --por fazer --
                         else:  # vamos pedir mantimentos
-                            print(f"\n--> Eu {str(self.agent.name)} conclui que o dano nao e severo, {self.agent.requester_contact.split('@')[0]} apenas precisas de mantimentos")
+                            print(
+                                f"\n--> Eu {str(self.agent.name)} conclui que o dano nao e severo, {self.agent.requester_contact.split('@')[0]} apenas precisas de mantimentos")
                             self.agent.position.damage = 0  # damage = 0 pois os rescuers ja ajudaram e nao foi um dano severo para precisar de tempo a recuperar
 
                     # --done--
@@ -340,19 +345,23 @@ class RescuerAgent(agent.Agent):
                         # ir ate shelter
                         await asyncio.sleep(timer_ate_block)
                         await self.send(response)
-                        print(f"\n--> Eu {self.agent.name} cheguei ao {self.agent.requester_contact.split('@')[0]} em {self.agent.position.name} apos viajar por {timer_ate_block}")
+                        print(
+                            f"\n--> Eu {self.agent.name} cheguei ao {self.agent.requester_contact.split('@')[0]} em {self.agent.position.name} apos viajar por {timer_ate_block}")
                         # informar o shelter que vai levar x civis
                         inform_shelter = Message(to=self.agent.requester_contact)
                         inform_shelter.set_metadata("performative", "inform")
                         inform_shelter.body = f"Retirei {msg.body.split(' ')[4]} civis do teu shelter"
                         await self.send(inform_shelter)
                         # informar o civil que o vai levar a casa
-                        dist_ate_casa_civil = dijkstra_min_distance(self.agent.env, self.agent.tranport_civil["civil_pos"], self.agent.position.name)
+                        dist_ate_casa_civil = dijkstra_min_distance(self.agent.env,
+                                                                    self.agent.tranport_civil["civil_pos"],
+                                                                    self.agent.position.name)
                         self.agent.position = self.agent.env.blocks[msg.body.split(" ")[9]]
                         inform_civil = Message(to=msg.body.split(" ")[2])
                         inform_civil.set_metadata("performative", "inform")
                         inform_civil.body = f"Transporte realizado ate a tua casa em {dist_ate_casa_civil}"
-                        print(f"--> Eu {self.agent.name} vou viajar ate a casa do {msg.body.split(' ')[2].split('@')[0]} em {msg.body.split(' ')[9]} durante {dist_ate_casa_civil}")
+                        print(
+                            f"--> Eu {self.agent.name} vou viajar ate a casa do {msg.body.split(' ')[2].split('@')[0]} em {msg.body.split(' ')[9]} durante {dist_ate_casa_civil}")
                         await asyncio.sleep(dist_ate_casa_civil)
                         await self.send(inform_civil)
                         self.agent.occupied = False
@@ -369,7 +378,8 @@ class RescuerAgent(agent.Agent):
             location_request = self.agent.considering
             num_civis = self.agent.num_need_save
             requester_contact = self.agent.requester_contact
-            negociation_id = requester_contact.split('@')[0]  # vamos usar requester_contact.split('@')[0] como id para a negociacao
+            negociation_id = requester_contact.split('@')[
+                0]  # vamos usar requester_contact.split('@')[0] como id para a negociacao
             if "shelter" in negociation_id:
                 civil_jid = self.agent.tranport_civil["civil_jid"]
                 civil_pos = self.agent.tranport_civil["civil_pos"]
@@ -439,15 +449,18 @@ class RescuerAgent(agent.Agent):
                     accept.set_metadata("performative", "accept-proposal")
                     accept.body = f"Socorre em {location_request} {num_civis} civis o seu contacto {requester_contact} tens de percorrer uma distancia de {best_distance}"
                     await self.send(accept)
-                    print(f"--> Proposta aceita para {chosen_rescuer} salvar o {requester_contact.split('@')[0]} em {location_request} a uma dist de {best_distance}")
+                    print(
+                        f"--> Proposta aceita para {chosen_rescuer} salvar o {requester_contact.split('@')[0]} em {location_request} a uma dist de {best_distance}")
                 if "shelter" in negociation_id:
                     accept = Message(to=chosen_rescuer)
                     accept.set_metadata("performative", "accept-proposal")
                     accept.body = f"Transporte o {civil_jid} com {num_civis} civis de {location_request} ate {civil_pos} distancia ate ao {requester_contact} e {best_distance}"
                     await self.send(accept)
-                    print(f"--> Proposta aceita para {chosen_rescuer} ir ate o {requester_contact.split('@')[0]} em {location_request} a uma dist de {best_distance} e transportar o {civil_jid} com {num_civis} pessoas ate {civil_pos}")
+                    print(
+                        f"--> Proposta aceita para {chosen_rescuer} ir ate o {requester_contact.split('@')[0]} em {location_request} a uma dist de {best_distance} e transportar o {civil_jid} com {num_civis} pessoas ate {civil_pos}")
             else:
-                print(f"--> Nenhum rescuer disponivel para o {requester_contact.split('@')[0]}, a informar que precisa de pedir ajuda outra vez")
+                print(
+                    f"--> Nenhum rescuer disponivel para o {requester_contact.split('@')[0]}, a informar que precisa de pedir ajuda outra vez")
                 repeat_req = Message(to=requester_contact)
                 repeat_req.set_metadata("performative", "failure")
                 if "shelter" in negociation_id:
@@ -459,7 +472,8 @@ class RescuerAgent(agent.Agent):
             self.kill()
 
     # --done--
-    class FindShelter(OneShotBehaviour):  # faz contratnet para encontrar o melhor shelter, desloca-se ate ao shelter e entrega os civis
+    class FindShelter(
+        OneShotBehaviour):  # faz contratnet para encontrar o melhor shelter, desloca-se ate ao shelter e entrega os civis
         async def run(self):
             jid_rescuer = str(self.agent.jid)
             chosen_shelter = "dummy"
@@ -497,7 +511,8 @@ class RescuerAgent(agent.Agent):
                         response.body = f"exite um shelter mais proximo"
                         await self.send(response)
 
-            print(f"--> EU {self.agent.name} vou levar o {requester_contact.split('@')[0]} para o {chosen_shelter.split('@')[0]} a uma distancia de {best_distance}\n")
+            print(
+                f"--> EU {self.agent.name} vou levar o {requester_contact.split('@')[0]} para o {chosen_shelter.split('@')[0]} a uma distancia de {best_distance}\n")
             accept = Message(to=chosen_shelter)
             accept.set_metadata("performative", "accept-proposal")
             accept.body = f"Vou transportar {self.agent.num_need_save} civis ate ai"  # msg para shelter a informar quantos civis
@@ -526,12 +541,12 @@ class RescuerAgent(agent.Agent):
             position_in_need = self.agent.position.name
             for agent_jid in self.agent.env.agents_contact["suppliers"]:
                 cpf = Message(to=agent_jid)
-                cpf.set_metadata("performative",  "cpf")
+                cpf.set_metadata("performative", "cpf")
                 cpf.body = "How many supplies you have and where are you"
                 await self.send(cpf)
                 msg = await self.receive(timeout=10)
                 if msg.get_metadata("performative") == "propouse":
-                    options[str(msg.sender)] = (msg.body.split()[1],msg.body.split()[-2])
+                    options[str(msg.sender)] = (msg.body.split()[1], msg.body.split()[-2])
             best_supplier = None
             best_distance = float("inf")
             for supplier in options:
@@ -576,7 +591,8 @@ class CivilAgent(agent.Agent):
                         self.agent.deslocado = ""
                         self.agent.position = self.agent.home
                         self.agent.pedido_realizado = False  # ja realizamos o pedido
-                        print(f"--> Eu {self.agent.name} cheguei a casa agora que ja nao tem danos apos viajar por {msg.body.split(' ')[-1]}")
+                        print(
+                            f"--> Eu {self.agent.name} cheguei a casa agora que ja nao tem danos apos viajar por {msg.body.split(' ')[-1]}")
                     elif message_text[0] == 'Vamos':  # chegou ao shelter
                         for shelter_agent in self.agent.env.agents_contact["shelter"]:
                             if shelter_agent.position.name == message_text[-1]:
@@ -584,8 +600,10 @@ class CivilAgent(agent.Agent):
                                 # caso tivessemos muitos sera melhor outra implementacao
                                 self.agent.deslocado = str(shelter_agent.jid)
                                 self.agent.position = shelter_agent.position
-                                await asyncio.sleep(dijkstra_min_distance(self.agent.env, self.agent.position.name, shelter_agent.position.name))
-                                print(f"--> Eu {self.agent.name} cheguei ao {shelter_agent.name} apos ser salvo pelo {str(msg.sender).split('@')[0]}")
+                                await asyncio.sleep(dijkstra_min_distance(self.agent.env, self.agent.position.name,
+                                                                          shelter_agent.position.name))
+                                print(
+                                    f"--> Eu {self.agent.name} cheguei ao {shelter_agent.name} apos ser salvo pelo {str(msg.sender).split('@')[0]}")
                                 break
                         self.agent.pedido_realizado = False  # ja realizamos o pedido
 
@@ -613,7 +631,8 @@ class CivilAgent(agent.Agent):
 
     class AskRescue(OneShotBehaviour):
         async def run(self):
-            print(f"--> Eu {self.agent.name} preciso de ajuda em {self.agent.position.name} vou pedir a um rescuer para me ajudar")
+            print(
+                f"--> Eu {self.agent.name} preciso de ajuda em {self.agent.position.name} vou pedir a um rescuer para me ajudar")
             rescue_agent = random.choice(self.agent.env.agents_contact["rescuer"])
             msg = Message(to=str(rescue_agent.jid))
             msg.set_metadata("performative", "request")
@@ -622,7 +641,8 @@ class CivilAgent(agent.Agent):
 
     class AskTransport(OneShotBehaviour):
         async def run(self):
-            print(f"--> Eu {self.agent.name} pedi transporte ao {self.agent.deslocado.split('@')[0]} para voltar a casa pois ela ja nao tem dano")
+            print(
+                f"--> Eu {self.agent.name} pedi transporte ao {self.agent.deslocado.split('@')[0]} para voltar a casa pois ela ja nao tem dano")
             msg = Message(to=self.agent.deslocado)
             msg.set_metadata("performative", "request")
             msg.body = f"Transporte {self.agent.civis} civis para a minha casa {self.agent.home.name}"
@@ -676,8 +696,8 @@ async def main():
     environment.agents_contact["rescuer"] = [rescuer1, rescuer2, rescuer3]
     environment.agents_contact["shelter"] = [shelter1, shelter2]
 
-    #print(rescuer1.jid)
-    #return
+    # print(rescuer1.jid)
+    # return
 
     # Start all agents
     await rescuer1.start(auto_register=True)
