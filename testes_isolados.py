@@ -10,7 +10,7 @@ from spade.behaviour import PeriodicBehaviour
 
 '''
 TODO:
-    adicionar logica para o civil voltar a casa
+    adicionar logica para quando o civil precisa de mantimentos
     adicionar logica para quando apenas precisa de mantimentos
 '''
 "ASK FOR SUPPLIES FALTA DECIDIR QUAL É CONSIDERADO O MELHOR E MANDAR MNS A CONFIRMAR"
