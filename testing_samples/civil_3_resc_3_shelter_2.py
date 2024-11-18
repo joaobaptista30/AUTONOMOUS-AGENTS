@@ -53,6 +53,10 @@ async def main():
     print()
     print("civil 3 pos:", civil3.position.name)
     print("rescuer 3 pos:", rescuer3.position.name)
+    print()
+    print("shelter1 espaco: ", shelter1.num_people)
+    print("shelter2 espaco: ", shelter2.num_people)
+
     # Stop agents after the test
     await civil1.stop()
     await civil2.stop()
