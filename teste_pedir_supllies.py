@@ -65,22 +65,7 @@ class ShelterAgent(agent.Agent):
                     if "rescuer" == msg.body.split(" ")[1]:
                         # rescuer a informar que a contractnet foi concluida com sucesso e um rescuer inicio o trabalho
                         pass
-                    else:
-                        available_supplies = int(msg.body.split(" ")[-1])
-                        response = Message(to=str(msg.sender))
-                        response.set_metadata("perfromative", "confirm")
-                        if available_supplies < self.agent.max_supplies - self.agent.current_supplies:
-                            self.agent.current_supplies += available_supplies
-                            response.body = f"recebi {available_supplies} supllies"
-                            print(f"--> EU {self.agent.name} recebi {available_supplies} de {str(msg.sender)}")
-                            await self.send(response)
-                        else:
-                            self.agent.current_supplies = self.agent.max_supplies
-                            response.body = f"recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} supplies"
-                            print(f"--> EU {self.agent.name} recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} de {str(msg.sender)}")
-                            await self.send(response)
 
-                    self.agent.supplies_requested = False
                 elif performative == "accept-proposal":
                     # foi o shelter escolhido pelo rescuer
                     self.agent.num_people += int(msg.body.split()[2])
@@ -101,6 +86,7 @@ class ShelterAgent(agent.Agent):
                         confirm._sender = str(self.agent.jid)
                         confirm.body = "Recebi os supplys"
                         await self.send(confirm)
+                        self.agent.supplies_requested = False
                 elif performative == "failure":
                     if "rescuer" in str(
                             msg.sender):  # contractnet para saber melhor rescuer para transportar os civis falhou
@@ -127,7 +113,7 @@ class ShelterAgent(agent.Agent):
                 pedir_supplies = Message(to=str(random_supplier.jid))
                 pedir_supplies.set_metadata("performative", "request")
                 pedir_supplies.body = f"Preciso de supplies no ponto {self.agent.position.name}"
-                print(f"-->Eu {self.agent.name} vou pedir supplys ao {random_supplier.name}")
+                print(f"--> Eu {self.agent.name} vou pedir supplys ao {random_supplier.name}")
                 await self.send(pedir_supplies)
             await asyncio.sleep(5)
 
