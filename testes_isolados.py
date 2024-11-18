@@ -111,22 +111,21 @@ class ShelterAgent(agent.Agent):
                 if msg and msg.get_metadata("performative") == "propose":
                     options[msg.sender] = [msg.body.split()[1], msg.body.split()[5]]
             best_supplier = None
-            mais_perto = float("inf")
+            closest = float("inf")
             for key in options:
-                if options[key][1] < mais_perto:
-                    best_supplier = key
-                    mais_perto = options[key][1]
-            for key in options:
-                if key != best_supplier:
-                    response = Message(to=key)
+                if options[key][1] < closest:
+                    response = Message(to=best_supplier)
                     response.set_metadata("performative","reject_proposal")
                     response.body = f""
                     await self.send(response)
-                else:
-                    response = Message(to=key)
-                    response.set_metadata("performative", "accept_proposal")
-                    response.body = f""
-                    await self.send(response)
+                    
+                    best_supplier = key
+                    closest = options[key][1]
+            
+            response = Message(to=best_supplier)
+            response.set_metadata("performative", "accept_proposal")
+            response.body = f""
+            await self.send(response)
 
     class CheckSupplies(CyclicBehaviour):
         async def run(self):
