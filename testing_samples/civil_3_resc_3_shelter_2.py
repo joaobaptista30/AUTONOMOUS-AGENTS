@@ -43,7 +43,7 @@ async def main():
     environment.blocks["DE"].damage = 10
 
     # Run the simulation for some time to allow interactions
-    await asyncio.sleep(40)  # Adjust as needed to observe behavior
+    await asyncio.sleep(60)  # Adjust as needed to observe behavior
 
     print("civil 1 pos:", civil1.position.name)
     print("rescuer 1 pos:", rescuer1.position.name)
