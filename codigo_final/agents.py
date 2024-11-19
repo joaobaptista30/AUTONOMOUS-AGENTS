@@ -84,7 +84,7 @@ class ShelterAgent(agent.Agent):
                         self.agent.num_people -= int(msg.body.split(" ")[1])
                     elif msg.body.split(" ")[-1] == "supplys":
                         self.agent.current_supplies += int(msg.body.split(" ")[-2])
-                        print(f"--> Eu {self.agent.name} recebi {int(msg.body.split(' ')[-2])} supplys de {str(msg.sender)}")
+                        print(f"--> Eu {self.agent.name} recebi {int(msg.body.split(' ')[-2])} supplies de {str(msg.sender)}")
                         confirm = Message(to=str(msg.sender))
                         confirm.set_metadata("performative", "confirm")
                         confirm._sender = str(self.agent.jid)
@@ -111,11 +111,11 @@ class ShelterAgent(agent.Agent):
         async def run(self):
             if not self.agent.supplies_requested and self.agent.current_supplies <= self.agent.max_supplies / 2:
                 self.agent.supplies_requested = True
-                random_supplier = random.choice(self.agent.env.agents_contact["suppliers"])
+                random_supplier = random.choice(self.agent.env.agents_contact["supplier"])
                 pedir_supplies = Message(to=str(random_supplier.jid))
                 pedir_supplies.set_metadata("performative", "request")
                 pedir_supplies.body = f"Preciso de supplies no ponto {self.agent.position.name}"
-                print(f"-->Eu {self.agent.name} vou pedir supplys ao {random_supplier.name}")
+                print(f"--> Eu {self.agent.name} vou pedir supplys ao {random_supplier.name}")
                 await self.send(pedir_supplies)
 
     class DistributeSupplies(PeriodicBehaviour):
@@ -197,7 +197,7 @@ class SupplierAgent(agent.Agent):
                     if self.agent.num_supplies < self.agent.max_supplies * 0.25:
                         self.agent.add_behaviour(self.agent.RefillSupplies())
                     else:
-                        self.occupied = False
+                        self.agent.occupied = False
                 elif performative == "confirm":
                     if msg.sender in self.agent.env.agents_contact["shelters"]:
                         supllies_taken = int(msg.body.split(" ")[-2])
@@ -225,10 +225,10 @@ class SupplierAgent(agent.Agent):
             num_civis = self.agent.num_civis
             position = self.agent.helping_position
             agent = self.agent.helping_agent
-            print(f"--> Eu {self.agent.name}vou encontrar o melhor supplier para {agent}")
+            print(f"--> Eu {self.agent.name} vou encontrar o melhor supplier para {agent}")
             best_supplier = self.agent
             shortest_distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, position)
-            for supplier in self.agent.env.agents_contact["suppliers"]:
+            for supplier in self.agent.env.agents_contact["supplier"]:
                 cpf = Message(to=str(supplier.jid))
                 cpf._sender = str(self.agent.jid)
                 cpf.set_metadata("performative", "cpf")
@@ -272,13 +272,9 @@ class SupplierAgent(agent.Agent):
                 self.agent.helping_position = position
                 self.agent.add_behaviour(self.agent.FindSupplier())
             elif msg.body.split(' ')[0] == "Entreguei":
-                print(f"Os supplies forem distruibuidos para {num_civis} pelo {best_supplier}")
+                print(f"--> Os supplies forem distruibuidos para {num_civis} pelo {best_supplier}")
             else:
-                print(f"Os suppys foram entregues por {str(msg.sender)} ao {agent}")
-
-    async def setup(self):
-        print(f"Supplier Agent {self.name} started with max supplies {self.max_supplies}.")
-        self.add_behaviour(self.ReceiveMessageBehaviour())
+                print(f"--> Os suppys foram entregues por {str(msg.sender)} ao {agent}")
 
     class RefillSupplies(OneShotBehaviour):
         async def run(self):
@@ -288,6 +284,11 @@ class SupplierAgent(agent.Agent):
             await asyncio.sleep(self.agent.max_supplies-self.agent.num_supplies)
             self.agent.num_supplies = self.agent.max_supplies
             self.agent.occupied = False
+
+    async def setup(self):
+        print(f"Supplier Agent {self.name} started with max supplies {self.max_supplies}.")
+        self.add_behaviour(self.ReceiveMessageBehaviour())
+
 
 class RescuerAgent(agent.Agent):
     def __init__(self, jid, password, position, env):
@@ -386,7 +387,10 @@ class RescuerAgent(agent.Agent):
                         else:  # vamos pedir mantimentos
                             num_civis = msg.body.split(' ')[3]
                             print(f"\n--> Eu {str(self.agent.name)} conclui que o dano nao e severo, {self.agent.requester_contact.split('@')[0]} apenas precisas de mantimentos")
-                            random_supplier = random.choice(self.agent.env.agents_contact["suppliers"])
+                            while True:
+                                random_supplier = random.choice(self.agent.env.agents_contact["supplier"])
+                                if not random_supplier.occupied: break
+
                             request = Message(to=str(random_supplier.jid))
                             request.set_metadata("performative", "request")
                             request._sender = self.agent.name
