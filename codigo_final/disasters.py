@@ -73,7 +73,7 @@ class RepairMan(agent.Agent):
 
 
 async def main():
-    env = load_env("city_desing.txt")
+    env = load_env("city_design.txt")
     disasters = Disaster("disastermanager@localhost","password",env)
     await disasters.start(auto_register=True)
 

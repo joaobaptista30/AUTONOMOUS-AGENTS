@@ -738,7 +738,7 @@ def populate_city(env,n_rescuers,n_suppliers):
 
 
 async def main():
-    environment = load_env("city_desing.txt")
+    environment = load_env("city_design.txt")
     autonomous_agents = populate_city(environment, 12, 4)
 
     for autonom_agent in autonomous_agents:

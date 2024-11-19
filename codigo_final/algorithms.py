@@ -44,7 +44,7 @@ def dijkstra_min_distance(graph, start, target):
 
 
 if __name__ == "__main__":
-    env = load_env("./city_desing.txt")
+    env = load_env("./city_design.txt")
     i = time.time()
     P1 = "DE"
     P2 = "FA"

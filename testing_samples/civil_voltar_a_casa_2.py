@@ -8,7 +8,7 @@ from codigo_final.agents import ShelterAgent, CivilAgent, RescuerAgent
 
 
 async def main():
-    environment = load_env("./codigo_final/city_desing.txt")
+    environment = load_env("./codigo_final/city_design.txt")
 
     # iniciar agents manualmente para teste
     civil1 = CivilAgent("civil1@localhost", "password", environment.blocks["AE"], environment)
