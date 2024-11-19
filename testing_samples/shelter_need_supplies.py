@@ -3,12 +3,12 @@ import os, sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from algorithms import load_env
-from testes_isolados import ShelterAgent, SupplierAgent
+from codigo_final.algorithms import load_env
+from codigo_final.agents import ShelterAgent, SupplierAgent
 
 
 async def main():
-    environment = load_env("./city_desing.txt")
+    environment = load_env("./codigo_final/city_desing.txt")
 
     # iniciar agents manualmente para teste
     shelter1 = ShelterAgent("shelter1@localhost", "password", environment.blocks["AH"], environment)

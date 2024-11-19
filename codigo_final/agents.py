@@ -1,7 +1,7 @@
 import asyncio
 import random
-from algorithms import dijkstra_min_distance
-from environment import load_env
+from codigo_final.algorithms import dijkstra_min_distance
+from codigo_final.environment import load_env
 
 from spade import agent
 from spade.behaviour import CyclicBehaviour, OneShotBehaviour, PeriodicBehaviour
