@@ -369,7 +369,7 @@ class RescuerAgent(agent.Agent):
                     agree.set_metadata("performative", "agree")
                     agree.body = "Vou enviar uma equipa para ajudar"
                     await self.send(agree)
-                    self.agent.add_behaviour(self.agent.DecideBestRescuer())  # iniciar o ContractNet
+                    self.agent.add_behaviour(self.agent.FindRescuer())  # iniciar o ContractNet
 
                 elif performative == 'accept-proposal':
                     if "Socorre" == msg.body.split(" ")[0]:
@@ -444,7 +444,7 @@ class RescuerAgent(agent.Agent):
                     print(f"mensagem sem comportamento definido {str(msg.sender)} | msg\n{msg}\n")
 
     # --done--
-    class DecideBestRescuer(OneShotBehaviour):
+    class FindRescuer(OneShotBehaviour):
         async def run(self):
             location_request = self.agent.considering
             num_civis = self.agent.num_need_save
@@ -686,6 +686,9 @@ class CivilAgent(agent.Agent):
 
 def populate_city(env,n_rescuers,n_suppliers):
     """
+    n_rescuers: max number of rescuers in the city
+    n_suppliers: number of supply agents per central
+
     there are 5 types of blocks
     house: will have 3 to 5 civilians in the civil agent
     condo: will have 6 to 10 civilians in the civil agent

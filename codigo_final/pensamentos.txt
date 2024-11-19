@@ -1,5 +1,5 @@
 ficheiros:
-agents.py - por rever
+agents.py - revisto
 environment.py - revisto
 disasters.py - revisto
 algorithms.py - revisto
