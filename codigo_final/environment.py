@@ -36,6 +36,7 @@ class Environment:
     def __init__(self):
         self.blocks = {}
         self.agents_contact = {}  # like yellow pages for communication ['rescuer','supplier','shelter'] storing a pointer to the agent
+        self.supply_center = []  # pointers to the block of supplies center
         # performance stats
         self.civilians_rescued = 0
         self.supplies_delivered = 0
@@ -79,8 +80,10 @@ def load_env(env_desing_path) -> Environment:
         i = 1
         while i <= int(lines[0]):  # create blocks (nodes)
             name, block_type, zone, adj_z = lines[i].split(",")
-            adj_zones = [int(i) for i in adj_z.split(" ") if len(adj_z) > 0]
+            adj_zones = [int(j) for j in adj_z.split(" ") if len(adj_z) > 0]
             envir.blocks[name] = (Block(name, block_type, int(zone), adj_zones))
+            if block_type == "supplier":
+                envir.supply_center.append(envir.blocks[name])
             i += 1
 
         for node in envir.blocks.values():

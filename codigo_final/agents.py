@@ -61,12 +61,12 @@ class ShelterAgent(agent.Agent):
                         if available_supplies < self.agent.max_supplies - self.agent.current_supplies:
                             self.agent.current_supplies += available_supplies
                             response.body = f"recebi {available_supplies} supllies"
-                            print(f"--> EU {self.agent.name} recebi {available_supplies} de {str(msg.sender)}")
+                            print(f"--> EU {self.agent.name} recebi {available_supplies} de {str(msg.sender).split('@')[0]}")
                             await self.send(response)
                         else:
                             self.agent.current_supplies = self.agent.max_supplies
                             response.body = f"recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} supplies"
-                            print(f"--> EU {self.agent.name} recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} de {str(msg.sender)}")
+                            print(f"--> EU {self.agent.name} recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} de {str(msg.sender).split('@')[0]}")
                             await self.send(response)
 
                     self.agent.supplies_requested = False
@@ -115,7 +115,7 @@ class ShelterAgent(agent.Agent):
                 pedir_supplies = Message(to=str(random_supplier.jid))
                 pedir_supplies.set_metadata("performative", "request")
                 pedir_supplies.body = f"Preciso de supplies no ponto {self.agent.position.name}"
-                print(f"--> Eu {self.agent.name} vou pedir supplys ao {random_supplier.name}")
+                print(f"--> Eu {self.agent.name} vou pedir supplies ao {random_supplier.name}")
                 await self.send(pedir_supplies)
 
     class DistributeSupplies(PeriodicBehaviour):
@@ -162,7 +162,7 @@ class SupplierAgent(agent.Agent):
                     await self.send(response)
                 elif performative == "accept-proposal":
                     self.agent.occupied = True
-                    print(f"--> Eu {self.agent.name} fui escolhido por {str(msg.sender)} para entregar supplys para no ponto {msg.body.split(' ')[-1]}")
+                    print(f"--> Eu {self.agent.name} fui escolhido por {str(msg.sender).split('@')[0]} para entregar supplies para no ponto {msg.body.split(' ')[-1]}")
                     distancia = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.body.split(" ")[-1])
                     await asyncio.sleep(distancia)
                     self.agent.position = self.agent.env.blocks[msg.body.split(" ")[-1]]
@@ -178,21 +178,21 @@ class SupplierAgent(agent.Agent):
                             final = Message(to=str(msg.sender))
                             final.set_metadata("performative", "inform-done")
                             final._sender = str(self.agent.jid)
-                            final.body = "Entreguei os supplys"
+                            final.body = "No shelter entreguei os supplies"
                             await self.send(final)
                         else:
                             erro = Message(to=str(msg.sender))
                             erro.set_metadata("performative", "failure")
                             erro._sender = str(self.agent.jid)
-                            erro.body = "Não ntreguei os supplys"
+                            erro.body = "Não entreguei os supplies"
                             await self.send(erro)
                     else:
-                        self.agent.num_supplies -= int(msg.body.split(" ")[4]) * int(self.agent.position.damage)
+                        self.agent.num_supplies -= int(msg.body.split(" ")[4]) * 5
                         self.agent.position.damage = 0
                         done = Message(to=str(msg.sender))
                         done.set_metadata("performative", "inform-done")
                         done._sneder = self.agent.name
-                        done.body = f"Entreguei os supplys a {int(msg.body.split(' ')[4])} civis no ponto {self.agent.position.name}"
+                        done.body = f"Entreguei os supplies a {int(msg.body.split(' ')[4])} civis no ponto {self.agent.position.name}"
                         await self.send(done)
                     if self.agent.num_supplies < self.agent.max_supplies * 0.25:
                         self.agent.add_behaviour(self.agent.RefillSupplies())
@@ -206,7 +206,9 @@ class SupplierAgent(agent.Agent):
                     if self.agent.num_supplies < self.agent.max_supplies/3:
                         self.agent.add_behaviour(self.agent.RefillSupplies())
                 elif performative == "request":
-                    self.agent.num_civis = msg.body.split(' ')[1]
+                    if msg.body.split(' ')[0] == 'Preciso': self.agent.num_civis = 0
+                    else: self.agent.num_civis = int(msg.body.split(' ')[1])
+
                     self.agent.helping_agent = str(msg.sender)
                     self.agent.helping_position = msg.body.split(" ")[-1]
                     self.agent.add_behaviour(self.agent.FindSupplier())
@@ -216,8 +218,9 @@ class SupplierAgent(agent.Agent):
                     pass
                 elif performative == "inform-done":
                     pass
+                elif performative == 'refuse': # verificar se e preciso realizar algo
+                    pass
                 else:
-                    print(msg)
                     print(f"{self.agent.name} received an unhandled message from {str(msg.sender)}: {msg.body}")
 
     class FindSupplier(OneShotBehaviour):
@@ -225,7 +228,7 @@ class SupplierAgent(agent.Agent):
             num_civis = self.agent.num_civis
             position = self.agent.helping_position
             agent = self.agent.helping_agent
-            print(f"--> Eu {self.agent.name} vou encontrar o melhor supplier para {agent}")
+            #print(f"--> Eu {self.agent.name} vou encontrar o melhor supplier para {agent}")
             best_supplier = self.agent
             shortest_distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, position)
             for supplier in self.agent.env.agents_contact["supplier"]:
@@ -272,16 +275,23 @@ class SupplierAgent(agent.Agent):
                 self.agent.helping_position = position
                 self.agent.add_behaviour(self.agent.FindSupplier())
             elif msg.body.split(' ')[0] == "Entreguei":
-                print(f"--> Os supplies forem distruibuidos para {num_civis} pelo {best_supplier}")
+                print(f"--> Os supplies foram distruibuidos para {num_civis} pelo {str(best_supplier).split('@')[0]}")
             else:
-                print(f"--> Os suppys foram entregues por {str(msg.sender)} ao {agent}")
+                print(f"--> Os suppys foram entregues por {str(msg.sender).split('@')[0]} ao {agent.split('@')[0]}")
 
     class RefillSupplies(OneShotBehaviour):
         async def run(self):
-            distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, self.agent.home.name)
+            closest_center = None
+            closest_dist = float("inf")
+            for supply_center in self.agent.env.supply_center:
+                distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, supply_center.name)
+                if distance < closest_dist:
+                    closest_center = supply_center
+                    closest_dist = distance
+
             await asyncio.sleep(distance)
-            self.agent.position = self.agent.home
-            await asyncio.sleep(self.agent.max_supplies-self.agent.num_supplies)
+            self.agent.position = closest_center
+            await asyncio.sleep(3)  # tempo para refill
             self.agent.num_supplies = self.agent.max_supplies
             self.agent.occupied = False
 
