@@ -1,0 +1,26 @@
+ficheiros:
+agents.py - por rever
+environment.py - revisto
+disasters.py - revisto
+algorithms.py - revisto
+main.py - por fazer
+
+testes:
+    (levar civil ao shelter) salvar 1 civil e 2 rescuers | salvar 2 civil e 1 rescuer
+    (pedir supplies para civil) salvar 1 civil e 2 rescuers | salvar 2 civil e 1 rescuer
+
+    transportar 1 civil e 2 rescuers | transportar 2 civils e 1 rescuer
+
+    shelter pedir supplies
+
+
+agentes presentes para o caso geral
+33 casa para civil
+3 casa para supplier (4 supplier agent per?)
+7 casa shelter (1 por divisao)
+11 total de rescuers (1 rescuer por cada 3 civis)
+
+um dia vai ter 40 seg
+    uma refeicao a cada 20 seg
+
+um novo disaster a cada 120 seg (a cada 3 dias)
