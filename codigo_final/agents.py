@@ -140,6 +140,7 @@ class SupplierAgent(agent.Agent):
         self.helping_position = None
         self.helping_agent = None
         self.num_civis = 0
+        self.home = position
 
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
@@ -193,6 +194,10 @@ class SupplierAgent(agent.Agent):
                         done._sneder = self.agent.name
                         done.body = f"Entreguei os supplys a {int(msg.body.split(' ')[4])} civis no ponto {self.agent.position.name}"
                         await self.send(done)
+                    if self.agent.num_supplies < self.agent.max_supplies * 0.25:
+                        self.agent.add_behaviour(self.agent.RefillSupplies())
+                    else:
+                        self.occupied = False
                 elif performative == "confirm":
                     if msg.sender in self.agent.env.agents_contact["shelters"]:
                         supllies_taken = int(msg.body.split(" ")[-2])
@@ -275,25 +280,14 @@ class SupplierAgent(agent.Agent):
         print(f"Supplier Agent {self.name} started with max supplies {self.max_supplies}.")
         self.add_behaviour(self.ReceiveMessageBehaviour())
 
-
-'''
     class RefillSupplies(OneShotBehaviour):
-        async def _run(self):
-            closest = None
-            best_distance = float("inf")
-            for refill_spot in #sitio para reabastecer:
-                distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, refill_spot.position)
-                if distance < best_distance:
-                    best_distance = distance
-                    closest = refill_spot
-
+        async def run(self):
+            distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, self.agent.home.name)
             await asyncio.sleep(distance)
-            self.agent.position = refill_spot.position
+            self.agent.position = self.agent.home
             await asyncio.sleep(self.agent.max_supplies-self.agent.num_supplies)
             self.agent.num_supplies = self.agent.max_supplies
             self.agent.occupied = False
-'''
-
 
 class RescuerAgent(agent.Agent):
     def __init__(self, jid, password, position, env):
@@ -387,7 +381,7 @@ class RescuerAgent(agent.Agent):
                         if self.agent.position.damage > 5:  # vamos deslocar para um shelter
                             print(f"\n--> Eu {str(self.agent.name)} vou escolher um shelter para o civil {self.agent.requester_contact.split('@')[0]}")
                             self.agent.add_behaviour(self.agent.FindShelter())
-
+                    
                         # --done--
                         else:  # vamos pedir mantimentos
                             num_civis = msg.body.split(' ')[3]
@@ -398,7 +392,7 @@ class RescuerAgent(agent.Agent):
                             request._sender = self.agent.name
                             request.body = f"Há {num_civis} civis que precisao de supplies no ponto {self.agent.position.name}"
                             await self.send(request)
-
+                            self.agent.occupied = False
                     # --done--
                     elif "Transporte" == msg.body.split(" ")[0]:
                         # msg.body = f"Transporte o {civil_jid} com {num_civis} civis de {location_request} ate {civil_pos} distancia ate ao {requester_contact} e {best_distance}"
