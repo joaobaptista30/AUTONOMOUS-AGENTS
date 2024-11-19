@@ -66,20 +66,13 @@ class ShelterAgent(agent.Agent):
                         # rescuer a informar que a contractnet foi concluida com sucesso e um rescuer inicio o trabalho
                         pass
                     else:
-                        available_supplies = int(msg.body.split(" ")[-1])
-                        response = Message(to=str(msg.sender))
-                        response.set_metadata("perfromative", "confirm")
-                        if available_supplies < self.agent.max_supplies - self.agent.current_supplies:
-                            self.agent.current_supplies += available_supplies
-                            response.body = f"recebi {available_supplies} supllies"
-                            print(f"--> EU {self.agent.name} recebi {available_supplies} de {str(msg.sender)}")
-                            await self.send(response)
+                        if msg.sender.num_suplplies() < self.agent.max_supplies - self.agent.current_supplies:
+                            self.agent.current_supplies += msg.sender.num_supplies
                         else:
                             self.agent.current_supplies = self.agent.max_supplies
-                            response.body = f"recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} supplies"
-                            print(f"--> EU {self.agent.name} recebi {available_supplies - (self.agent.max_supplies-self.agent.current_supplies)} de {str(msg.sender)}")
-                            await self.send(response)
-
+                    response = Message(to=str(msg.sender))
+                    response.set_metadata("performative", "confirm")
+                    response.body = "Supplies received"
                     self.agent.supplies_requested = False
                 elif performative == "accept-proposal":
                     # foi o shelter escolhido pelo rescuer
@@ -104,47 +97,40 @@ class ShelterAgent(agent.Agent):
                     pass
                 elif performative == "agree":
                     pass
-                elif performative == "propose":
-                    pass
-                elif performative == "refuse":
-                    pass
                 else:
                     print(f"{self.agent.name} received an unhandled message from {str(msg.sender)}: {msg}")
 
     class AskSupplies(OneShotBehaviour):
         async def run(self):
-            print(f"--> EU {self.agent.name} preciso de supllies")
             options = {}
             self.agent.needed_supplies = self.agent.max_supplies - self.agent.current_supplies
-            for supply_agent in self.agent.env.agents_contact["suppliers"]:
+            for supply_agent in self.agent.env.agents_contact["supplyer"]:
                 request = Message(to=str(supply_agent.jid))
                 request.set_metadata("performative", "cpf")
-                request.body = f"how many suplies do you have and how far are you from {self.agent.position.name}"
+                request.body = "how many suplies do you have and where are you?"
                 await self.send(request)
                 msg = await self.receive(timeout=5)
                 if msg and msg.get_metadata("performative") == "propose":
-                    options[str(msg.sender)] = [msg.body.split()[1], int(msg.body.split(" ")[-2])]
+                    options[msg.sender] = [msg.body.split()[1], msg.body.split()[5]]
             best_supplier = None
             closest = float("inf")
             for key in options:
                 if options[key][1] < closest:
-                    if best_supplier != None:
-                        response = Message(to=best_supplier)
-                        response.set_metadata("performative", "reject-proposal")
-                        response.body = f"Nao foste escolhido"
-                        await self.send(response)
+                    response = Message(to=best_supplier)
+                    response.set_metadata("performative", "reject_proposal")
+                    response.body = f""
+                    await self.send(response)
 
                     best_supplier = key
                     closest = options[key][1]
-            print(f"--> EU {self.agent.name} vou pedir supplies a {best_supplier}")
+
             response = Message(to=best_supplier)
-            response.set_metadata("performative", "accept-proposal")
-            response.body = f"Vem para {self.agent.position.name}"
+            response.set_metadata("performative", "accept_proposal")
+            response.body = f""
             await self.send(response)
 
     class CheckSupplies(CyclicBehaviour):
         async def run(self):
-            print(f"-->Eu {self.agent.name} tenho {self.agent.current_supplies}")
             if not self.agent.supplies_requested and self.agent.current_supplies <= self.agent.max_supplies / 2:
                 self.agent.supplies_requested = True
                 self.agent.add_behaviour(self.agent.AskSupplies())
@@ -152,13 +138,13 @@ class ShelterAgent(agent.Agent):
 
     class DistributeSupplies(PeriodicBehaviour):
         async def run(self):
-            self.agent.current_supplies -= 10*self.agent.num_people
+            self.agent.current_supplies -= self.agent.num_people
 
     async def setup(self):
         print(f"Shelter Agent {self.name} started with max people {self.max_people} and supplies {self.max_supplies}.")
         self.add_behaviour(self.ReceiveMessage())
         self.add_behaviour(self.CheckSupplies())
-        self.add_behaviour(self.DistributeSupplies(period=2))
+        self.add_behaviour(self.DistributeSupplies(period=30))
 
 
 class SupplierAgent(agent.Agent):
@@ -175,68 +161,58 @@ class SupplierAgent(agent.Agent):
             msg = await self.receive(timeout=5)
             if msg:
                 performative = msg.get_metadata("performative")
-                if self.agent.occupied:
-                    response = Message(to=str(msg.sender))
-                    response.set_metadata("performative", "refuse")
-                    response.body = f"estou ocupado"
-                    await self.send(response)
-                elif performative == "cpf":
-                    distance = dijkstra_min_distance(self.agent.env,
-                                                     self.agent.position.name,
-                                                     msg.body.split(" ")[-1])
-                    response = Message(to=str(msg.sender))
-                    response.set_metadata("performative", "propose")
-                    response.body = f"Tenho {self.agent.num_supplies} e estou a {distance} metros"
-                    await self.send(response)
-                elif performative == "accept-proposal":
+                if performative == "cpf":
+                    if not self.agent.occupied:
+                        distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.sender.position.name)
+                        response = Message(to=str(msg.sender))
+                        response.set_metadata("performative", "propose")
+                        response.body = f"Tenho {self.agent.num_supplies} e estou a {distance} metros"
+                        await self.send(response)
+                    else:
+                        response = Message(to=str(msg.sender))
+                        response.set_metadata("performative", "refuse")
+                        response.body = f""
+                        await self.send(response)
+                if performative == "query_ref" and not self.agent.occupied:
+                    if not self.agent.occupied:
+                        if msg.sender in self.agent.env.agents_contact["shelter"]:
+                            response = Message(to=str(msg.sender))
+                            response.set_metadata("performative", "inform")
+                            response.body = f"Tenho {self.agent.num_supplies} e estou na posiçao {self.agent.position.name}"
+                            await self.send(response)
+                    else:
+                        response = Message(to=str(msg.sender))
+                        response.set_metadata("performative", "refuse")
+                if performative == "accept_proposal":
                     self.agent.occupied = True
-                    distancia = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.body.split(" ")[-1])
+                    body = msg.body
+                    distancia = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.sender.position.name)
                     await asyncio.sleep(distancia)
-                    self.agent.position = self.agent.env.blocks[msg.body.split(" ")[-1]]
+                    self.agent.position = msg.sender.position
                     response = Message(to=str(msg.sender))
-                    response.set_metadata("performative", "inform-done")
-                    if msg.body.split(" ")[0] == "Vem":
-                        response.body = f"Supplying requested resources, tenho {self.agent.num_supplies}"
+                    response.set_metadata("performative", "inform_done")
+                    if msg.sender in self.agent.env.agents_contact["shelter"]:
+                        response.body = "Supplying requested resources."
+                        needed_supplies = msg.sender.needed_suplies
                         await self.send(response)
                     else:
                         response.body = "arrived at the point of supply"
                         await self.send(response)
                         ...  # entrega de supplys no local
-                        if self.agent.num_supplies < self.agent.max_supplies / 3:
-                            self.agent.add_behaviour(self.agent.RefillSupplies())
 
-                elif performative == "confirm":
-                    if msg.sender in self.agent.env.agents_contact["shelters"]:
-                        supllies_taken = int(msg.body.split(" ")[-2])
-                        self.agent.num_supplies -= supllies_taken
-                        print(f"--> Eu {self.agent.name} entreguei {supllies_taken} ao {str(msg.sender)}")
-                    if self.agent.num_supplies < self.agent.max_supplies/3:
-                        self.agent.add_behaviour(self.agent.RefillSupplies())
-                elif performative == "reject-proposal":
-                    pass
+                if performative == "confirm":
+                    if needed_supplies > self.agent.num_supplies:
+                        self.agent.num_supplies = 0
+                    else:
+                        self.agent.num_supplies -= needed_supplies
+                    self.agent.occupied = False
                 else:
-                    print(f"{self.agent.name} received an unhandled message from {str(msg.sender)}: {msg.body}")
+                    print(f"{self.agent.name} received an unhandled message from {msg.sender.jid}: {msg.body}")
 
     async def setup(self):
         print(f"Supplier Agent {self.name} started with max supplies {self.max_supplies}.")
         self.add_behaviour(self.ReceiveMessageBehaviour())
-'''
-    class RefillSupplies(OneShotBehaviour):
-        async def _run(self):
-            closest = None
-            best_distance = float("inf")
-            for refill_spot in #sitio para reabastecer:
-                distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, refill_spot.position)
-                if distance < best_distance:
-                    best_distance = distance
-                    closest = refill_spot
 
-            await asyncio.sleep(distance)
-            self.agent.position = refill_spot.position
-            await asyncio.sleep(self.agent.max_supplies-self.agent.num_supplies)
-            self.agent.num_supplies = self.agent.max_supplies
-            self.agent.occupied = False
-'''
 
 class RescuerAgent(agent.Agent):
     def __init__(self, jid, password, position, env):
@@ -352,7 +328,6 @@ class RescuerAgent(agent.Agent):
                             print(
                                 f"\n--> Eu {str(self.agent.name)} conclui que o dano nao e severo, {self.agent.requester_contact.split('@')[0]} apenas precisas de mantimentos")
                             self.agent.position.damage = 0  # damage = 0 pois os rescuers ja ajudaram e nao foi um dano severo para precisar de tempo a recuperar
-                            self.agent.add_behaviour(self.agent.AskSupplies())
 
                     # --done--
                     elif "Transporte" == msg.body.split(" ")[0]:
@@ -497,8 +472,7 @@ class RescuerAgent(agent.Agent):
             self.kill()
 
     # --done--
-    class FindShelter(
-        OneShotBehaviour):  # faz contratnet para encontrar o melhor shelter, desloca-se ate ao shelter e entrega os civis
+    class FindShelter(OneShotBehaviour):  # faz contratnet para encontrar o melhor shelter, desloca-se ate ao shelter e entrega os civis
         async def run(self):
             jid_rescuer = str(self.agent.jid)
             chosen_shelter = "dummy"
@@ -561,6 +535,8 @@ class RescuerAgent(agent.Agent):
     class AskSupplies(OneShotBehaviour):
         async def run(self):
             options = {}
+            best_supplier = None
+            best_distance = float("inf")
             position_in_need = self.agent.position.name
             for agent_jid in self.agent.env.agents_contact["suppliers"]:
                 cpf = Message(to=agent_jid)
@@ -568,25 +544,24 @@ class RescuerAgent(agent.Agent):
                 cpf.body = "How many supplies you have and where are you"
                 await self.send(cpf)
                 msg = await self.receive(timeout=10)
-                if msg.get_metadata("performative") == "propose":
-                    options[str(msg.sender)] = (msg.body.split()[1], msg.body.split()[-1])
+                if msg.get_metadata("performative") == "propouse":
+                    options[str(msg.sender)] = (msg.body.split()[1], msg.body.split()[-2])
             best_supplier = None
             best_distance = float("inf")
             for supplier in options:
-                if options[supplier][-2] < best_distance:
+                if options[supplier][0] < best_distance:
                     if best_supplier != None:
                         refuse_request = Message(to=best_supplier)
-                        refuse_request.set_metadata("performative", "reject-proposal")
+                        refuse_request.set_metadata("performative", "reject_proposal")
                         refuse_request.body = f"Not accepted"
                         await self.send(refuse_request)
                     best_supplier = supplier
                     best_distance = options[supplier][0]
             accept = Message(to=best_supplier)
-            accept.set_metadata("performative", "accept-proposal")
+            accept.set_metadata("performative", "accept_proposal")
             accept.body = f"Vai para o ponto {self.agent.position.name}"
             await self.send(accept)
             await self.receive(timeout=10)
-            self.agent.occupied = False
 
     async def setup(self):
         print(f"Rescue Agent {self.name} started.")
@@ -684,7 +659,7 @@ async def populate_city(env):
     house: will have 3 to 5 civil agents
     condo: will have 5 to 10 civil agents
     shelter: location of shelter agent
-    supply_center: depo central com mantimentos para os supply agents
+    supplier: depo central com mantimentos para os supply agents
     empty: just an empty space
     """
 
@@ -697,7 +672,9 @@ async def populate_city(env):
             ...
         elif block.block_type == 'shelter':  # iniciar shelters
             ...
-        elif block.block_type == 'supply_center':  # iniciar supplies
+        elif block.block_type == 'supplier':  # iniciar supplies
+            ...
+        elif block.block_type == "rescuer":
             ...
         else:
             ...
@@ -717,13 +694,8 @@ async def main():
     shelter1 = ShelterAgent("shelter1@localhost", "password", environment.blocks["AH"], environment)
     shelter2 = ShelterAgent("shelter2@localhost", "password", environment.blocks["GH"], environment)
 
-    supplier1 = SupplierAgent("supplier1@localhost", "password", environment.blocks["AF"], environment)
-    supplier2 = SupplierAgent("supplier2@localhost", "password", environment.blocks["GH"], environment)
-    supplier3 = SupplierAgent("supplier3@localhost", "password", environment.blocks["DA"], environment)
-
     environment.agents_contact["rescuer"] = [rescuer1, rescuer2, rescuer3]
     environment.agents_contact["shelter"] = [shelter1, shelter2]
-    environment.agents_contact["suppliers"] = [supplier1, supplier2, supplier3]
 
     # print(rescuer1.jid)
     # return
@@ -736,9 +708,6 @@ async def main():
     await shelter2.start(auto_register=True)
     await civil1.start(auto_register=True)
     await civil2.start(auto_register=True)
-    await supplier1.start(auto_register=True)
-    await supplier2.start(auto_register=True)
-    await supplier3.start(auto_register=True)
     print()
 
     environment.blocks["AE"].damage = 10
@@ -762,10 +731,6 @@ async def main():
 
     await shelter1.stop()
     await shelter2.stop()
-
-    await supplier1.stop()
-    await supplier2.stop()
-    await supplier3.stop()
 
 
 if __name__ == "__main__":
