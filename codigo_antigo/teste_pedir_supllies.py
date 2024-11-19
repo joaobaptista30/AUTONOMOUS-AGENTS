@@ -163,7 +163,8 @@ class SupplierAgent(agent.Agent):
                     distancia = dijkstra_min_distance(self.agent.env, self.agent.position.name, msg.body.split(" ")[-1])
                     await asyncio.sleep(distancia)
                     self.agent.position = self.agent.env.blocks[msg.body.split(" ")[-1]]
-                    if "supplier" in str(msg.sender):
+                    if "shelter" in msg.body.split(" ")[3]:
+                        print("recebi de um shelter")
                         agent = msg.body.split(" ")[3]
                         entregue = Message(to=str(agent))
                         entregue.set_metadata("performative", "inform")
@@ -184,17 +185,10 @@ class SupplierAgent(agent.Agent):
                             erro.body = "Não ntreguei os supplys"
                             await self.send(erro)
                     else:
+                        self.agent.num_supplies -= self.agent.position.damage * 20
                         response = Message(to=str(msg.sender))
                         response.set_metadata("performative", "inform-done")
-                        if msg.body.split(" ")[0] == "Vem":
-                            response.body = f"Supplying requested resources, tenho {self.agent.num_supplies}"
-                            await self.send(response)
-                        else:
-                            response.body = "arrived at the point of supply"
-                            await self.send(response)
-                            ...  # entrega de supplys no local
-                            if self.agent.num_supplies < self.agent.max_supplies / 3:
-                                self.agent.add_behaviour(self.agent.RefillSupplies())
+                        response.body = f"Entreguei os supplys"
                 elif performative == "confirm":
                     if msg.sender in self.agent.env.agents_contact["shelters"]:
                         supllies_taken = int(msg.body.split(" ")[-2])
@@ -263,8 +257,10 @@ class SupplierAgent(agent.Agent):
                 self.agent.helping_agent = agent
                 self.agent.helping_position = position
                 self.agent.add_behaviour(self.agent.FindSupplier())
-            else:
+            elif "shelter" in agent:
                 print(f"Os suppys foram entregues por {str(msg.sender)} ao {agent}")
+            else:
+                print(f"O {str(msg.sender)} entregous os supplys aos civis no ponto {position}")
 
     async def setup(self):
         print(f"Supplier Agent {self.name} started with max supplies {self.max_supplies}.")
@@ -401,7 +397,13 @@ class RescuerAgent(agent.Agent):
                             print(
                                 f"\n--> Eu {str(self.agent.name)} conclui que o dano nao e severo, {self.agent.requester_contact.split('@')[0]} apenas precisas de mantimentos")
                             self.agent.position.damage = 0  # damage = 0 pois os rescuers ja ajudaram e nao foi um dano severo para precisar de tempo a recuperar
-                            self.agent.add_behaviour(self.agent.AskSupplies())
+                            random_supplier = random.choice(self.agent.env.agents_contact["suppliers"])
+                            print(random_supplier.jid)
+                            request = Message(to=str(random_supplier.jid))
+                            request.set_metadata("performative", "request")
+                            request._sender = f"{self.agent.jid}"
+                            request.body = f"São precisos supplies no ponto {self.agent.position.name}"
+                            await self.send(request)
 
                     # --done--
                     elif "Transporte" == msg.body.split(" ")[0]:
@@ -607,36 +609,6 @@ class RescuerAgent(agent.Agent):
             self.agent.occupied = False
             self.agent.num_need_save = 0
 
-    class AskSupplies(OneShotBehaviour):
-        async def run(self):
-            options = {}
-            position_in_need = self.agent.position.name
-            for agent_jid in self.agent.env.agents_contact["suppliers"]:
-                cpf = Message(to=agent_jid)
-                cpf.set_metadata("performative", "cpf")
-                cpf.body = "How many supplies you have and where are you"
-                await self.send(cpf)
-                msg = await self.receive(timeout=10)
-                if msg.get_metadata("performative") == "propose":
-                    options[str(msg.sender)] = (msg.body.split()[1], msg.body.split()[-1])
-            best_supplier = None
-            best_distance = float("inf")
-            for supplier in options:
-                if options[supplier][-2] < best_distance:
-                    if best_supplier != None:
-                        refuse_request = Message(to=best_supplier)
-                        refuse_request.set_metadata("performative", "reject-proposal")
-                        refuse_request.body = f"Not accepted"
-                        await self.send(refuse_request)
-                    best_supplier = supplier
-                    best_distance = options[supplier][0]
-            accept = Message(to=best_supplier)
-            accept.set_metadata("performative", "accept-proposal")
-            accept.body = f"Vai para o ponto {self.agent.position.name}"
-            await self.send(accept)
-            await self.receive(timeout=10)
-            self.agent.occupied = False
-
     async def setup(self):
         print(f"Rescue Agent {self.name} started.")
         self.add_behaviour(self.ReceiveMessage())
@@ -705,7 +677,7 @@ class CivilAgent(agent.Agent):
     class AskRescue(OneShotBehaviour):
         async def run(self):
             print(
-                f"--> Eu {self.agent.name} preciso de ajuda em {self.agent.position.name} vou pedir a um rescuer para me ajudar")
+                f"--> Eu {self.agent.name} preciso de ajuda em {self.agent.position.name} vou pedir a um rescuer para ajudar {self.agent.civis} civis")
             rescue_agent = random.choice(self.agent.env.agents_contact["rescuer"])
             msg = Message(to=str(rescue_agent.jid))
             msg.set_metadata("performative", "request")
@@ -790,8 +762,6 @@ async def main():
     await supplier3.start(auto_register=True)
     print()
 
-    shelter1.current_supplies = 200  # Define o valor desejado
-    print(f"Current supplies of shelter1 set to: {shelter1.current_supplies}")
     # Run the simulation for some time to allow interactions
     await asyncio.sleep(20)  # Adjust as needed to observe behavior
 
