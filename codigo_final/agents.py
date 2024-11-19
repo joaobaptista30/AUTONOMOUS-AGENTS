@@ -38,10 +38,10 @@ class ShelterAgent(agent.Agent):
                         civil_jid = str(msg.sender)
                         civil_pos = msg.body.split(" ")[-1]
                         shelter_pos = self.agent.position.name
-
-                        rescue_agent = random.choice(self.agent.env.agents_contact["rescuer"])
-                        while rescue_agent.occupied:
+                        rescue_agent = None
+                        while True:
                             rescue_agent = random.choice(self.agent.env.agents_contact["rescuer"])
+                            if not rescue_agent.occupied: break
 
                         ask_transport = Message(to=str(rescue_agent.jid))
                         ask_transport.set_metadata("performative", "request")
@@ -111,7 +111,10 @@ class ShelterAgent(agent.Agent):
         async def run(self):
             if not self.agent.supplies_requested and self.agent.current_supplies <= self.agent.max_supplies / 2:
                 self.agent.supplies_requested = True
-                random_supplier = random.choice(self.agent.env.agents_contact["supplier"])
+                random_supplier = None
+                while True:
+                    random_supplier = random.choice(self.agent.env.agents_contact["supplier"])
+                    if not random_supplier.occupied: break
                 pedir_supplies = Message(to=str(random_supplier.jid))
                 pedir_supplies.set_metadata("performative", "request")
                 pedir_supplies.body = f"Preciso de supplies no ponto {self.agent.position.name}"
@@ -397,6 +400,7 @@ class RescuerAgent(agent.Agent):
                         else:  # vamos pedir mantimentos
                             num_civis = msg.body.split(' ')[3]
                             print(f"\n--> Eu {str(self.agent.name)} conclui que o dano nao e severo, {self.agent.requester_contact.split('@')[0]} apenas precisas de mantimentos")
+                            random_supplier = None
                             while True:
                                 random_supplier = random.choice(self.agent.env.agents_contact["supplier"])
                                 if not random_supplier.occupied: break
