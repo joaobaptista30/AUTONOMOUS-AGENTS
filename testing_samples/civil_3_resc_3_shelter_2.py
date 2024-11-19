@@ -3,12 +3,12 @@ import os, sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from algorithms import load_env
-from testes_isolados import ShelterAgent, CivilAgent, RescuerAgent
+from codigo_final.algorithms import load_env
+from codigo_final.agents import ShelterAgent, CivilAgent, RescuerAgent
 
 
 async def main():
-    environment = load_env("./city_desing.txt")
+    environment = load_env("./codigo_final/city_desing.txt")
 
     # iniciar agents manualmente para teste
     civil1 = CivilAgent("civil1@localhost", "password", environment.blocks["AE"], environment)

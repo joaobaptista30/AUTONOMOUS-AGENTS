@@ -3,7 +3,7 @@ import random
 from spade import agent
 from spade.behaviour import PeriodicBehaviour
 
-from environment import load_env
+from codigo_final.environment import load_env
 
 
 class Disaster(agent.Agent):
