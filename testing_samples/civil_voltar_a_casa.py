@@ -38,6 +38,9 @@ async def main():
     print(rescuer1.position.name)
     print()
     print(rescuer2.position.name)
+
+    print("\nperformance")
+    print("tempo medio de salvamento: ",environment.total_transport_home_time_traveled/environment.total_transport_home_trips)
     # Stop agents after the test
     await civil1.stop()
     await civil2.stop()

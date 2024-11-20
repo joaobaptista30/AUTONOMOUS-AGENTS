@@ -44,6 +44,8 @@ class Environment:
         self.total_rescuers_time_traveled = 0
         self.total_suppliers_trips = 0
         self.total_suppliers_time_traveled = 0
+        self.total_transport_home_trips = 0
+        self.total_transport_home_time_traveled = 0
 
 
     def display(self) -> None:  # currently show the input to analise if it is correct

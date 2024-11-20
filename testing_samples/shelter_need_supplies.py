@@ -26,13 +26,15 @@ async def main():
     shelter1.current_supplies = 100
 
     # Run the simulation for some time to allow interactions
-    await asyncio.sleep(120)  # Adjust as needed to observe behavior
+    await asyncio.sleep(40)  # Adjust as needed to observe behavior
 
     print("shelter na pos: ", shelter1.position.name)
     print("mantimentos no shelter: ", shelter1.current_supplies)
     print("posicao atual do supplie apos entregar mantimentos ao shelter: ", supplier1.position.name)
     print("supplies no supplier: ", supplier1.num_supplies)
 
+    print("\ntempo medio para reabastecer: ",environment.total_suppliers_time_traveled/environment.total_suppliers_trips)
+    print("mantimentos entregues: ",environment.supplies_delivered)
     # Stop agents after the test
     await shelter1.stop()
     await supplier1.stop()
