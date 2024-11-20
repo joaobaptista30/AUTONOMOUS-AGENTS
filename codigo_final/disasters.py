@@ -49,6 +49,13 @@ class Disaster(agent.Agent):
 
                 for adj in curr.adj:
                     if adj.destiny.name not in visited and dist+adj.distance <= max_dist:
+                        if adj.distance < 5: 
+                            adj.distance += 5
+                            if random.choice([i for i in range(30)]) == 15:  # 1/30 chance the road will be blocked by the disaster
+                                adj.blocked = True
+                            
+                        elif adj.distance < 10: adj.distance += 3
+                        
                         queu.append([adj.destiny,dist+adj.distance])
             afetados.pop(0) # primeiro vai ser a disaster_epicenter e nao precisamos
             print(f"Aviso uma catastrofe ({disaster_selected}) iniciou se em {disaster_epicenter.name} e espalhou-se pelos blocos {afetados}")
@@ -68,8 +75,15 @@ class RepairMan(agent.Agent):
             for block in list(self.agent.env.blocks.values()):
                 block.damage = max(0, block.damage-5)
 
+    class FixRoad(PeriodicBehaviour):
+        async def run(self):
+            for block in list(self.agent.env.blocks.values()):
+                for conn in block.adj:
+                    conn.distance = conn.normal_time
+
     async def setup(self):
         self.add_behaviour(self.FixDamage(period=20)) # vai reparar os danos em 5 a cada 60 segundos
+        self.add_behaviour(self.FixRoad(period=35)) # vai reparar os danos em 5 a cada 60 segundos
 
 
 async def main():

@@ -31,6 +31,8 @@ def dijkstra_min_distance(graph, start, target):
 
         # explorar novas connections
         for connection in graph.blocks[current_node].adj:
+            if connection.blocked: continue  # ligacao obstruida
+            
             distance = current_distance + connection.distance
             neighbor = connection.destiny.name
 
