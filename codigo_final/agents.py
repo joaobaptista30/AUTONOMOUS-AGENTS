@@ -11,9 +11,9 @@ from spade.message import Message
 class ShelterAgent(agent.Agent):
     def __init__(self, jid, password, position, env):
         super().__init__(jid, password)
-        self.max_people = 100
+        self.max_people = 50
         self.num_people = 0
-        self.max_supplies = 500
+        self.max_supplies = 250
         self.current_supplies = self.max_supplies
         self.position = position
         self.env = env
@@ -123,7 +123,7 @@ class ShelterAgent(agent.Agent):
 
     class DistributeSupplies(PeriodicBehaviour):
         async def run(self):
-            self.agent.current_supplies -= self.agent.num_people
+            self.agent.current_supplies -= self.agent.num_people * 5
 
     async def setup(self):
         print(f"Shelter Agent {self.name} started with max people {self.max_people} and supplies {self.max_supplies}.")
@@ -136,7 +136,7 @@ class SupplierAgent(agent.Agent):
     def __init__(self, jid, password, position, env):
         super().__init__(jid, password)
         self.position = position
-        self.max_supplies = 250
+        self.max_supplies = 125
         self.num_supplies = self.max_supplies
         self.occupied = False
         self.env = env
@@ -208,7 +208,7 @@ class SupplierAgent(agent.Agent):
                         self.agent.occupied = False
                 elif performative == "confirm":
                     # if str(msg.sender) in self.agent.env.agents_contact["shelters"]:
-                    if str(msg.sender) in [str(shelter.jid) for shelter in self.agent.env.agents_contact["shelters"]]:
+                    if str(msg.sender) in [str(shelter.jid) for shelter in self.agent.env.agents_contact["shelter"]]:
                         supllies_taken = int(msg.body.split(" ")[-2])
                         self.agent.num_supplies -= supllies_taken
                         print(f"--> Eu {self.agent.name} entreguei {supllies_taken} ao {str(msg.sender).split('@')[0]}")
@@ -238,7 +238,7 @@ class SupplierAgent(agent.Agent):
             position = self.agent.helping_position
             agent = self.agent.helping_agent
             #print(f"--> Eu {self.agent.name} vou encontrar o melhor supplier para {agent}")
-            best_supplier = self.agent
+            best_supplier = str(self.agent.jid)
             shortest_distance = dijkstra_min_distance(self.agent.env, self.agent.position.name, position)
             for supplier in self.agent.env.agents_contact["supplier"]:
                 cpf = Message(to=str(supplier.jid))
@@ -248,17 +248,17 @@ class SupplierAgent(agent.Agent):
                 await self.send(cpf)
                 while True:
                     msg = await self.receive(timeout=5)
-                    if msg.get_metadata("performative") in ["propose","refuse"]:
+                    if msg and msg.get_metadata("performative") in ["propose","refuse"]:
                         break
                 if msg.get_metadata("performative") == "propose":
                     if int(msg.body.split(" ")[-2]) <= shortest_distance:
-                        reject = Message(to=str(best_supplier.jid))
+                        reject = Message(to=best_supplier)
                         reject.set_metadata("performative", "reject-proposal")
                         reject._sender = str(self.agent.jid)
                         reject.body = "Encontrei um supplier mais próximo"
                         await self.send(reject)
 
-                        best_supplier = msg.sender
+                        best_supplier = str(msg.sender)
                         shortest_distance = int(msg.body.split(" ")[-2])
 
                     elif int(msg.body.split(" ")[-2]) > shortest_distance:
@@ -267,7 +267,7 @@ class SupplierAgent(agent.Agent):
                         reject._sender = str(self.agent.jid)
                         reject.body = "Encontrei um supplier mais próximo"
                         await self.send(reject)
-            accept = Message(to=str(best_supplier))
+            accept = Message(to=best_supplier)
             accept.set_metadata("performative", "accept-proposal")
             accept._sender = str(self.agent.jid)
             if num_civis == 0:
@@ -285,7 +285,7 @@ class SupplierAgent(agent.Agent):
                 self.agent.helping_position = position
                 self.agent.add_behaviour(self.agent.FindSupplier())
             elif msg.body.split(' ')[0] == "Entreguei":
-                print(f"--> Os supplies foram distruibuidos para {num_civis} pelo {str(best_supplier).split('@')[0]}")
+                print(f"--> Os supplies foram distruibuidos para {num_civis} pelo {best_supplier.split('@')[0]}")
             else:
                 print(f"--> Os supplies foram entregues por {str(msg.sender).split('@')[0]} ao {agent.split('@')[0]}")
 
@@ -315,7 +315,6 @@ class RescuerAgent(agent.Agent):
         super().__init__(jid, password)
         self.position = position  # referencia para o block atual
         self.env = env
-        self.transp_space = 5
         self.occupied = False
         self.tranport_civil = {}
         self.needed_supplies = 0
@@ -335,6 +334,8 @@ class RescuerAgent(agent.Agent):
                 elif performative == "reject-propose":
                     pass
                 elif performative == "inform-done":
+                    pass
+                elif performative == "refuse":
                     pass
 
                 elif self.agent.occupied:
@@ -491,11 +492,12 @@ class RescuerAgent(agent.Agent):
 
                     while True:
                         msg = await self.receive(timeout=5)
-                        if msg and msg.body.split()[0] == negociation_id and str(msg.sender) == str(rescue_agent.jid):
+                        if (msg and msg.body.split()[0] == negociation_id and str(msg.sender) == str(rescue_agent.jid)
+                                and msg.get_metadata("performative") in ["propose", "refuse"]):
                             break
 
                     # print(f"\n mesngagem final ao negociar dist do resc ao civil: \n{msg}\n\n")
-                    if msg and msg.get_metadata("performative") in ["propose", "refuse"]:
+                    if msg:
                         if msg.get_metadata("performative") == "refuse":
                             # print(f"{str(msg.sender)} recusou")
                             continue
@@ -703,7 +705,6 @@ class CivilAgent(agent.Agent):
         self.add_behaviour(self.ReceiveMessage())
 
 
-
 def populate_city(env,n_rescuers,n_suppliers):
     """
     n_rescuers: max number of rescuers in the city
@@ -717,7 +718,7 @@ def populate_city(env,n_rescuers,n_suppliers):
     empty: just an empty space
     """
     agents_list = []
-    civil_id = rescuer_id = shelter_id = supply_id = 0
+    civil_id = rescuer_id = shelter_id = supply_id = 1
 
     for block in env.blocks.values():
         agent_creation = None
@@ -736,17 +737,20 @@ def populate_city(env,n_rescuers,n_suppliers):
         elif block.block_type == 'shelter':  # iniciar shelters
             agent_creation = ShelterAgent(f"shelter{shelter_id}@localhost", "password", block, env)
             shelter_id += 1
+            env.agents_contact["shelter"].append(agent_creation)
 
         elif block.block_type == 'supplier':  # iniciar supplies
             for i in range(n_suppliers):
                 agent_creation = SupplierAgent(f"supplier{supply_id}@localhost", "password", block, env)
                 supply_id += 1
                 agents_list.append(agent_creation)
+                env.agents_contact["supplier"].append(agent_creation)
 
         else:
             if random.choice([0,1]) % 2 == 0 and rescuer_id < n_rescuers:
                 agent_creation = RescuerAgent(f"rescuer{rescuer_id}@localhost", "password", block, env)
                 rescuer_id += 1
+                env.agents_contact["rescuer"].append(agent_creation)
 
         if agent_creation and block.block_type != 'supplier': agents_list.append(agent_creation)
 
