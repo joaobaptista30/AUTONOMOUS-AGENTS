@@ -88,7 +88,7 @@ class ShelterAgent(agent.Agent):
                         confirm = Message(to=str(msg.sender))
                         confirm.set_metadata("performative", "confirm")
                         confirm._sender = str(self.agent.jid)
-                        confirm.body = "Recebi os supplys"
+                        confirm.body = f"Recebi {int(msg.body.split(' ')[-2])} supplys"
                         await self.send(confirm)
                 elif performative == "failure":
                     if "rescuer" in str(msg.sender):  # contractnet para saber melhor rescuer para transportar os civis falhou
@@ -210,7 +210,7 @@ class SupplierAgent(agent.Agent):
                 elif performative == "confirm":
                     # if str(msg.sender) in self.agent.env.agents_contact["shelters"]:
                     if str(msg.sender) in [str(shelter.jid) for shelter in self.agent.env.agents_contact["shelter"]]:
-                        supllies_taken = int(msg.body.split(" ")[-2])
+                        supllies_taken = int(msg.body.split(" ")[1])
                         self.agent.num_supplies -= supllies_taken
                         print(f"--> Eu {self.agent.name} entreguei {supllies_taken} ao {str(msg.sender).split('@')[0]}")
                     if self.agent.num_supplies < self.agent.max_supplies/3:
