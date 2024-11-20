@@ -144,6 +144,7 @@ class SupplierAgent(agent.Agent):
         self.helping_agent = None
         self.num_civis = 0
         self.home = position
+        self.agent_requested = None
 
     class ReceiveMessageBehaviour(CyclicBehaviour):
         async def run(self):
@@ -215,8 +216,11 @@ class SupplierAgent(agent.Agent):
                     if self.agent.num_supplies < self.agent.max_supplies/3:
                         self.agent.add_behaviour(self.agent.RefillSupplies())
                 elif performative == "request":
-                    if msg.body.split(' ')[0] == 'Preciso': self.agent.num_civis = 0
-                    else: self.agent.num_civis = int(msg.body.split(' ')[1])
+                    if msg.body.split(' ')[0] == 'Preciso':
+                        self.agent.num_civis = 0
+                    else:
+                        self.agent.num_civis = int(msg.body.split(' ')[1])
+                        self.agent.agent_requested = msg.body.split(" ")[6]
 
                     self.agent.helping_agent = str(msg.sender)
                     self.agent.helping_position = msg.body.split(" ")[-1]
@@ -236,6 +240,7 @@ class SupplierAgent(agent.Agent):
         async def run(self):
             num_civis = self.agent.num_civis
             position = self.agent.helping_position
+            agent_requested = self.agent.agent_requested
             agent = self.agent.helping_agent
             #print(f"--> Eu {self.agent.name} vou encontrar o melhor supplier para {agent}")
             best_supplier = str(self.agent.jid)
@@ -286,6 +291,11 @@ class SupplierAgent(agent.Agent):
                 self.agent.add_behaviour(self.agent.FindSupplier())
             elif msg.body.split(' ')[0] == "Entreguei":
                 print(f"--> Os supplies foram distruibuidos para {num_civis} pelo {best_supplier.split('@')[0]}")
+                confirm = Message(to=str(agent_requested))
+                confirm.set_metadata("performative", "confirm")
+                confirm._sneder = str(self.agent.jid)
+                confirm.body = "Já entreguei mantimentos"
+                await self.send(confirm)
             else:
                 print(f"--> Os supplies foram entregues por {str(msg.sender).split('@')[0]} ao {agent.split('@')[0]}")
 
@@ -418,7 +428,7 @@ class RescuerAgent(agent.Agent):
                             request = Message(to=str(random_supplier.jid))
                             request.set_metadata("performative", "request")
                             request._sender = self.agent.name
-                            request.body = f"Há {num_civis} civis que precisao de supplies no ponto {self.agent.position.name}"
+                            request.body = f"Há {num_civis} civis a pedido de {self.agent.requester_contact} que precisao de supplies no ponto {self.agent.position.name}"
                             await self.send(request)
                             self.agent.occupied = False
                     # --done--
@@ -659,7 +669,8 @@ class CivilAgent(agent.Agent):
                                 print(f"--> Eu {self.agent.name} cheguei ao {shelter_agent.name} apos ser salvo pelo {str(msg.sender).split('@')[0]}")
                                 break
                         self.agent.pedido_realizado = False  # ja realizamos o pedido
-
+                elif performative == "confirm":
+                    self.agent.pedido_realizado = False
                 elif performative == "failure" or performative == "refuse":
                     await asyncio.sleep(5)  # aguardar 5 seg para pedir novamente ajuda
                     self.agent.pedido_realizado = False
