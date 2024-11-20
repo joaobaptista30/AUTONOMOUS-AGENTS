@@ -288,6 +288,8 @@ class SupplierAgent(agent.Agent):
             if msg.get_metadata("performative") != "inform-done":
                 self.agent.helping_agent = agent
                 self.agent.helping_position = position
+                self.agent.agent_requested = agent_requested
+                self.agent.num_civis = num_civis
                 self.agent.add_behaviour(self.agent.FindSupplier())
             elif msg.body.split(' ')[0] == "Entreguei":
                 print(f"--> Os supplies foram distruibuidos para {num_civis} pelo {best_supplier.split('@')[0]}")
