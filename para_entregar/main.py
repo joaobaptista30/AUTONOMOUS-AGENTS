@@ -1,8 +1,6 @@
 import asyncio
 import os
 
-from jinja2.async_utils import auto_await
-
 from codigo_final.agents import populate_city
 from codigo_final.environment import load_env
 from codigo_final.disasters import Disaster, RepairMan

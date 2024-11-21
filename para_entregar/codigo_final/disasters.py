@@ -61,7 +61,7 @@ class Disaster(agent.Agent):
             print(f"Aviso uma catastrofe ({disaster_selected}) iniciou se em {disaster_epicenter.name} e espalhou-se pelos blocos {afetados}")
 
     async def setup(self):
-        self.add_behaviour(self.StartDisaster(period=40)) # vai iniciar um desastre a cada 50 segundos
+        self.add_behaviour(self.StartDisaster(period=50)) # vai iniciar um desastre a cada 50 segundos
 
 
 class RepairMan(agent.Agent):
