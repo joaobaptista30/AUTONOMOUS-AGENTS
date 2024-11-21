@@ -1,0 +1,155 @@
+77
+AA,house,1,2 4 5
+AB,empty,1,2 4 5
+AC,house,1,2 4 5
+AD,house,1,2 4 5
+AE,empty,1,2 4 5
+AF,house,1,2 4 5
+AG,condo,1,2 4 5
+AH,shelter,1,2 4 5
+AI,house,1,2 4 5
+AJ,empty,1,2 4 5
+AK,house,1,2 4 5
+AL,empty,1,2 4 5
+AM,empty,1,2 4 5
+AN,empty,1,2 4 5
+BA,condo,2,1 3 5 6
+BB,shelter,2,1 3 5 6
+BC,house,2,1 3 5 6
+BD,supplier,2,1 3 5 6
+BE,empty,2,1 3 5 6
+BF,empty,2,1 3 5 6
+BG,house,2,1 3 5 6
+CA,empty,3,2 6 7
+CB,condo,3,2 6 7
+CC,house,3,2 6 7
+CD,shelter,3,2 6 7
+CE,house,3,2 6 7
+CF,house,3,2 6 7
+CG,empty,3,2 6 7
+CH,house,3,2 6 7
+CI,empty,3,2 6 7
+DA,empty,4,1 5
+DB,empty,4,1 5
+DC,empty,4,1 5
+DD,house,4,1 5
+DE,house,4,1 5
+DF,house,4,1 5
+DG,empty,4,1 5
+DH,condo,4,1 5
+DI,empty,4,1 5
+DJ,empty,4,1 5
+DK,shelter,4,1 5
+DL,supplier,4,1 5
+DM,empty,4,1 5
+DN,house,4,1 5
+DO,house,4,1 5
+DP,house,4,1 5
+DQ,empty,4,1 5
+EA,house,5,1 2 4 6
+EB,shelter,5,1 2 4 6
+EC,empty,5,1 2 4 6
+ED,house,5,1 2 4 6
+EE,house,5,1 2 4 6
+EF,empty,5,1 2 4 6
+EG,house,5,1 2 4 6
+EH,house,5,1 2 4 6
+EI,empty,5,1 2 4 6
+EJ,empty,5,1 2 4 6
+FA,condo,6,2 3 5 7
+FB,empty,6,2 3 5 7
+FC,empty,6,2 3 5 7
+FD,house,6,2 3 5 7
+FE,shelter,6,2 3 5 7
+FF,supplier,6,2 3 5 7
+FG,empty,6,2 3 5 7
+FH,house,6,2 3 5 7
+FI,condo,6,2 3 5 7
+FJ,house,6,2 3 5 7
+FK,empty,6,2 3 5 7
+FL,empty,6,2 3 5 7
+GA,empty,7,3 6
+GB,house,7,3 6
+GC,house,7,3 6
+GD,house,7,3 6
+GE,empty,7,3 6
+GF,empty,7,3 6
+GG,house,7,3 6
+GH,shelter,7,3 6
+AB 5
+AE 3
+AB 5
+AA 3,AE 6
+AD 6,AH 1,AF 6
+AC 3,AE 6,BD 13,AJ 2
+AH 2,AL 3
+AG 2,AI 4,DD 17
+AH 4,AJ 3,AN 5
+AI 3,EA 10,BF 20,AF 2
+AD 6,AL 1
+AK 1,AG 3,AM 8,DC 9
+AL 8,AF 8,BE 11,DB 8
+AI 5,BG 20,DH 13
+BE 15,BD 3,BB 5
+BA 5,BC 2,BG 9
+BB 2,BF 5,CA 10
+BA 3,CC 18,BF 6,BE 7,AF 13
+BA 15,BD 7,BG 7,EB 9,AM 11,CI 20
+BD 6,CH 7,AJ 20,BC 5,FB 15
+BB 9,BE 7,ED 14,AN 20
+BC 10,GD 17,CB 2,CC 3
+CA 2,CD 3
+CA 3,BD 18,CD 5,CH 1
+CB 3,CC 5,CE 2,CF 1
+CD 2,CG 2
+CD 1,CG 2,CH 5
+CE 1,CF 2,GA 3
+CC 1,CF 5,CI 4,BF 7
+CH 4,GA 15,GE 13,BE 20
+AK 5,EA 24,DC 2,DJ 4
+DC 8,AM 8,EB 11,DE 2
+AL 9,DB 8,DA 2
+AH 17,DF 2,DG 2,DE 7
+DB 2,DM 6,EB 14
+DC 3,DD 2,DJ 1,ED 30,DK 3
+DD 2,DH 3,DK 3,DL 5
+DG 3,AN 13,DI 4,DO 7
+DH 4,EA 11,EE 7
+DF 1,DP 4
+DF 3,DG 3,DM 8,DQ 4
+DG 5,DN 6
+DK 8,DN 3,EF 13
+DM 3,DL 6,EG 5
+DH 7,DQ 6,EI 10
+DQ 3,DJ 4
+DP 3,DO 6,DK 4
+EB 2,EE 8,AJ 10,DA 24,DI 11,FA 20
+EA 2,EC 3,BE 9,DE 14,DB 11
+EB 3,EE 5,EH 10
+BG 14,EF 4
+EA 8,EC 5,FC 10,EF 5,EG 6,DI 7
+ED 4,EE 5,DM 13
+EE 6,EH 4,EI 2,DN 5
+EG 4,EC 10,EJ 2,FJ 15
+EG 2,EJ 5,DO 10
+EI 5,EH 2,FK 10
+EA 20,CI 7,GD 10,FE 8
+BF 15,FC 6,GE 13
+FB 6,EE 10,FD 5
+FC 5,FE 2,FI 15
+FD 2,FA 8,FF 2
+FE 2,FJ 3,GE 10,FG 7
+FF 7,GH 4,FH 1,GB 16
+FG 1,FI 4
+FD 15,GF 12,FL 6,FH 4
+FF 3,FK 4,EH 15
+FJ 4,EJ 10
+FK 12
+CG 3,CI 15,GB 1
+GA 1,GC 1,FG 16
+GB 1,GD 3,GH 5
+GC 3,FA 10,CA 17,GG 6,GE 3
+GF 7,FB 13,FF 10,CI 13,GD 3
+GE 7,FI 12
+GD 6,GH 2
+GC 5,GG 2,FG 4
